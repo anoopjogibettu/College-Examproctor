@@ -87,7 +87,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password/:token" element={<ResetPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/face-setup" element={<PrivateRoute><FaceSetup /></PrivateRoute>} />
       <Route path="/exam/:id" element={<PrivateRoute><ExamSession /></PrivateRoute>} />
