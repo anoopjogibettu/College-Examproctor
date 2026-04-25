@@ -5,21 +5,61 @@ const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
+const UserOTP = require('../models/UserOTP');
 
 const router = express.Router();
 
-// Register User
+// Send OTP for Registration
+router.post('/send-otp', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email.endsWith('@mite.ac.in')) {
+            return res.status(400).json({ message: 'Registration is restricted to @mite.ac.in email addresses only.' });
+        }
+
+        const userExists = await User.findOne({ email });
+        if (userExists) {
+            return res.status(400).json({ message: 'User already exists with this email.' });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        await UserOTP.findOneAndUpdate(
+            { email },
+            { otp, expiresAt: Date.now() + 10 * 60 * 1000 },
+            { upsert: true, new: true }
+        );
+
+        await sendEmail({
+            email,
+            subject: 'MITE Exam Portal - Registration OTP',
+            message: `Your OTP for account registration is: ${otp}\n\nThis code is valid for 10 minutes.`
+        });
+
+        res.json({ message: 'OTP sent to email.' });
+    } catch (error) {
+        console.error('SEND-OTP ERROR:', error);
+        res.status(500).json({ message: 'Failed to send OTP.' });
+    }
+});
+
+// Register User (Modified to require OTP)
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, password, role, stream, branch, specialization, year } = req.body;
+        const { name, email, password, role, stream, branch, specialization, year, otp } = req.body;
         
-        // Enforce MITE email restriction
         if (!email.endsWith('@mite.ac.in')) {
             return res.status(400).json({ message: 'Registration is restricted to @mite.ac.in email addresses only.' });
         }
         
+        // Verify OTP
+        const otpRecord = await UserOTP.findOne({ email });
+        if (!otpRecord || otpRecord.otp !== otp) {
+            return res.status(400).json({ message: 'Invalid or expired OTP.' });
+        }
+        
         const userExists = await User.findOne({ email });
-
         if (userExists) {
             return res.status(400).json({ message: 'User already exists' });
         }
@@ -27,21 +67,18 @@ router.post('/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Generate a 6-character unique ID strictly containing both numbers and letters
-        let uid;
-        let isUnique = false;
-        
+        // Generate UID logic
         const generateMixedUID = () => {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             const nums = '0123456789';
-            // Pick 4 letters and 2 numbers to guarantee a mix
             let arr = [];
             for (let i = 0; i < 4; i++) arr.push(chars.charAt(Math.floor(Math.random() * chars.length)));
             for (let i = 0; i < 2; i++) arr.push(nums.charAt(Math.floor(Math.random() * nums.length)));
-            // Shuffle
             return arr.sort(() => 0.5 - Math.random()).join('');
         };
 
+        let uid;
+        let isUnique = false;
         while (!isUnique) {
             uid = generateMixedUID();
             const existingUid = await User.findOne({ uid });
@@ -60,8 +97,12 @@ router.post('/register', async (req, res) => {
             year: year || 1
         });
 
+        // Delete OTP after successful registration
+        await UserOTP.deleteOne({ email });
+
         res.status(201).json({ _id: user.id, name: user.name, email: user.email, role: user.role, uid: user.uid, stream: user.stream, specialization: user.specialization });
     } catch (error) {
+        console.error('REGISTER ERROR:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 });
