@@ -1,93 +1,151 @@
-# Enterprise AI Proctoring System
+# ProctorAI: Enterprise Online Exam Proctoring System
 
-A secure, dual-hardware monitoring examination platform equipped with rigorous anti-cheat mechanisms. This system utilizes a React (Vite) frontend combined with a robust Express (Node.js) & MongoDB backend.
-
-## 🚀 Key Security Features
-- **Strict Single-Device Login:** Enforces a rigid cryptographic lock on your session, instantly expiring credentials globally if a simultaneous login occurs from another device.
-- **Biometric Face Validation:** Uses `face-api.js` to establish an initial identity scan, tracking the webcam dynamically every 4 seconds.
-- **Dual Hardware Media Triggers:** 
-  - Records continuous 10-second looping WebM buffers of both the student's **Face (Webcam feed)** and **Entire Machine Desktop (Screen Share)** natively in memory simultaneously.
-  - Dynamically extracts the most relevant 10-second proof upon violation trigger (e.g. extracts Screen Share feed when the student explicitly switches tabs away from the active exam).
-- **Automated Sanctions:** Auto-terminates the student's attempt immediately after 4 recorded infractions.
+ProctorAI is a highly secure, AI-powered online examination platform designed for educational institutions. It enforces academic integrity through continuous biometric verification, automated anomaly detection, and a suite of anti-cheating mechanisms, all while providing a seamless experience for students, moderators, and administrators.
 
 ---
 
-## 🛠️ Prerequisites
-Ensure your local machine has the following tools installed:
-- **Node.js** (v16.14.0 or exceptionally higher) 
-- **NPM** (Native Package Manager included securely with Node installation)
-- **MongoDB** (A valid URI string properly connected to a live Cluster or local DB environment instance)
+## 🎯 Core Objectives
+
+1. **Academic Integrity:** Prevent impersonation and cheating using advanced facial recognition and behavioral tracking.
+2. **Access Control:** Role-Based Access Control (RBAC) ensuring students, moderators, and administrators only access appropriate features.
+3. **Scalability & Targeting:** Exams can be targeted to specific streams (Engineering, Post-Graduation), branches (CSE, MCA), or academic years.
+4. **Seamless Grading:** Support for multiple-choice, subjective text, and coding questions with a dedicated manual review interface.
 
 ---
 
-## 💻 Installation
+## 🚀 Key Features
 
-1. **Clone or Extract the Repository:**
-   Ensure your entire project structure lives cohesively under `/Desktop/Mini Project/`.
+### 🔐 Security & Identity Verification
+- **AI Biometric Registration:** Students map their facial geometry using TensorFlow's `face-api.js`. This is a mandatory prerequisite for accessing any course material or exams.
+- **Continuous Proctoring:** During an exam, the webcam actively monitors the student. It flags multiple faces, unauthorized absences, and off-screen glances.
+- **Environment Lock:** Detects and flags tab-switching, window resizing, or attempts to leave the fullscreen exam environment.
+- **Cheat Score Algorithm:** Dynamically calculates an integrity score based on the frequency and severity of detected violations.
+- **Unique Identifiers:** Automated generation of 6-character UIDs for users and `EXM-XXXX` identifiers for exams.
+- **OTP Verification:** Strict @mite.ac.in email requirement enforced via OTP for registration and password resets.
 
-2. **Initialize Backend Dependencies:**
-   Navigate into the `backend/` engine directory and strictly install all required APIs:
-   ```bash
-   cd backend
-   npm install
-   ```
+### 👨‍💻 User Roles & Workflows
 
-3. **Initialize Frontend Dependencies:**
-   Navigate into the `frontend/` UI directory and safely install all required React components:
-   ```bash
-   cd frontend
-   npm install
-   ```
+**1. Students**
+- Dashboard showing biometric status, upcoming/active exams, and past results.
+- Exam Session HUD displaying live camera feed, connection status, question progression, and proctoring warnings.
+- Clean code editor with dark mode for programming questions.
+
+**2. Moderators**
+- Live Command Center to monitor active attempts.
+- Real-time visibility into student "Cheat Scores" and violation logs.
+- Ability to forcibly terminate a suspicious exam attempt remotely.
+
+**3. Administrators**
+- Exam Creation Blueprint: Build exams, set duration, and target specific cohorts.
+- Role Management: Elevate standard students to Moderator status using their UID.
+- Manual Assessment Review: Grade subjective and coding questions through a dedicated high-contrast viewer.
+- Results Publishing: One-click publishing that calculates final scores (MCQ + Manual) and sends automated SMTP email notifications to students.
 
 ---
 
-## 🔒 Environment Variable Configuration
-To properly activate the server mechanisms, you must structurally define an `.env` file deep natively inside the `backend/` directory:
+## 💻 Technology Stack
 
-Create the file specifically at `backend/.env`, and insert the following securely formatted keys:
-```env
-# Your primary local or remote Database Address 
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/proctoring?retryWrites=true&w=majority
+### Frontend (Client-Side)
+- **Framework:** React.js powered by Vite for rapid development and optimized builds.
+- **Styling:** Custom Vanilla CSS utilizing CSS variables for consistent theming, smooth gradients, and glassmorphism.
+- **AI/ML:** `face-api.js` (TensorFlow.js) running locally in the browser for privacy-preserving face detection.
+- **Routing:** React Router DOM.
+- **Icons:** Lucide React.
 
-# Safe signing hash utilized specifically by JWT for tokens
-JWT_SECRET=any_super_secure_random_text_string
+### Backend (Server-Side)
+- **Runtime:** Node.js with Express.js.
+- **Database:** MongoDB utilizing Mongoose ODM for structured schemas.
+- **Authentication:** JSON Web Tokens (JWT) and Bcrypt.js for secure password hashing.
+- **Communications:** Nodemailer for SMTP email broadcasting (OTPs, Exam Alerts, Result Publications).
 
-# Standard local API port configuration
-PORT=5001
+---
+
+## 📁 Project Structure
+
+```text
+Mini Project/
+├── frontend/                 # React Vite Application
+│   ├── src/
+│   │   ├── context/          # AuthContext (State & LocalStorage Sync)
+│   │   ├── pages/            # Core Views (Dashboard, Admin, ExamSession)
+│   │   ├── index.css         # Global Styles & Design System Tokens
+│   │   └── App.jsx           # Routing & Layout Wrapper
+│   └── public/
+│       └── models/           # Pre-trained TensorFlow Face-API models
+│
+├── backend/                  # Node/Express API
+│   ├── models/               # Mongoose Schemas (User, Exam, Attempt, OTP)
+│   ├── routes/               # API Endpoints (Auth, Exams, Attempts, Admin)
+│   ├── middleware/           # JWT Verification & RBAC Guards
+│   └── server.js             # Express entry point & DB connection
 ```
 
 ---
 
-## 🏃 Running the Application
+## ⚙️ Local Development Setup
 
-To actively start the platform gracefully, you must launch two completely separate terminal windows (one for the Backend API, one explicitly for the Frontend Server).
+### Prerequisites
+- Node.js (v18 or higher)
+- MongoDB Cluster (Atlas or Local)
+- Gmail Account (for SMTP App Passwords)
 
-### 1. Booting the Backend Server
-Open your terminal natively and fire up the Node API. We recommend `nodemon` for safe automatic application reboots.
+### 1. Backend Configuration
+Navigate to the `backend` directory and install dependencies:
 ```bash
-# Navigate exactly into the backend folder
 cd backend
-
-# Execute via node strictly (or optionally 'npm start' / 'nodemon server.js' if configured globally)
-
+npm install
 ```
-*(You will see successful terminal output explicitly reading "Server running on port 5001" followed immediately by "MongoDB connected").*
 
-### 2. Booting the Frontend UI Interface
-Open a strictly fresh 2nd terminal instance natively and launch the Vite React process:
+Create a `.env` file in the `backend` root with the following variables:
+```env
+PORT=5001
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_secure_random_string
+FRONTEND_URL=http://localhost:5173
+
+# Email SMTP Setup
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_EMAIL=your_email@gmail.com
+SMTP_PASSWORD=your_google_app_password
+FROM_EMAIL=your_email@gmail.com
+FROM_NAME="ProctorAI Exam Cell"
+```
+
+Start the backend server:
 ```bash
-# Return natively strictly into the frontend folder
-cd frontend
-
-# Deploy precisely the frontend Hot Reloading UI
+npm start
+# or use nodemon for development:
 npm run dev
 ```
 
-### 3. Accessing the Platform
-Click forcefully or seamlessly highlight the URL provided securely by Vite in your second terminal (typically `http://localhost:5173`) and launch it strictly locally in a supported browser (Google Chrome highly recommended for complete Screen/Media API hardware capabilities).
+### 2. Frontend Configuration
+Navigate to the `frontend` directory and install dependencies:
+```bash
+cd frontend
+npm install
+```
+
+Create a `.env` file in the `frontend` root:
+```env
+VITE_API_URL=http://localhost:5001
+```
+
+Start the Vite development server:
+```bash
+npm run dev
+```
 
 ---
 
-## ⚠️ Important Browser Usage Notes
-- **Hardware Authorization Constraints:** Modern browsers fiercely mandate that permissions requests globally (such as explicitly requesting to share a screen or activate a webcam stream) are triggered cleanly by a native "user gesture". When starting the exam, physically clicking **"Capture & Register"** or **"Accept & Share Screen"** securely honors this logic dynamically!
-- **Local Network Conflicts:** If testing securely from an external mobile device or different IP, natively ensure your Vite configuration and specific Chrome Network settings actively permit `navigator.mediaDevices` over HTTP (or deploy securely over HTTPS instead for universal access).
+## 🛡️ Security Notes
+- **Face Models:** The biometric models are loaded locally from the `frontend/public/models` directory to eliminate external API latency and ensure data privacy. Face descriptors (arrays of numbers) are sent to the server, not raw images.
+- **Indexing:** The database uses `sparse: true` unique indexes to handle legacy data safely without collision errors.
+- **State Sync:** The frontend `AuthContext` performs forced server-side profile verification on load to prevent cached `localStorage` states from improperly locking/unlocking biometric-restricted features.
+
+---
+
+## 📅 Recent Changelog
+- **v1.2:** Fixed critical Vite build errors. Implemented forced profile synchronization for biometric checks. Refined Admin Dashboard UI to prevent badge clipping.
+- **v1.1:** Added UID backfill scripts and collision retry logic for automated `EXM-XXXX` generation. Built the Moderator Command Center.
+- **v1.0:** Initial AI implementation, OTP flows, and core CRUD operations.

@@ -10,6 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const examRoutes = require('./routes/examRoutes');
 const attemptRoutes = require('./routes/attemptRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const announcementRoutes = require('./routes/announcementRoutes');
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/attempts', attemptRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 const server = http.createServer(app);
 const io = new Server(server, {

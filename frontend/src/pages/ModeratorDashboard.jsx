@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { AuthContext } from '../context/AuthContext';
-import { LogOut, Activity, AlertCircle, Users, FileText, Shield, MessageSquare } from 'lucide-react';
+import { LogOut, Activity, AlertCircle, Users, FileText, Shield, MessageSquare, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ModeratorDashboard = () => {
@@ -11,6 +11,7 @@ const ModeratorDashboard = () => {
   const [logs, setLogs] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [usersList, setUsersList] = useState([]);
+  const [uidSearch, setUidSearch] = useState('');
   
   // Tab state
   const [activeTab, setActiveTab] = useState('attempts');
@@ -18,7 +19,11 @@ const ModeratorDashboard = () => {
   // Video Modal State
   const [playingVideo, setPlayingVideo] = useState(null);
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const fetchData = async () => {
+    if (!user || !user.token) return;
+    setIsSyncing(true);
     const headers = { Authorization: `Bearer ${user.token}` };
     
     try {
@@ -41,6 +46,7 @@ const ModeratorDashboard = () => {
     } catch (err) {
       console.error("Failed to fetch users", err);
     }
+    setIsSyncing(false);
   };
 
   const socketRef = React.useRef(null);
@@ -53,8 +59,10 @@ const ModeratorDashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [user]);
+    if (user?.token) {
+      fetchData();
+    }
+  }, [user?.token]);
 
   const handleSendWarning = (studentId) => {
     const message = prompt('Enter a direct warning/message to send to this student:');
@@ -131,7 +139,19 @@ const ModeratorDashboard = () => {
           <h2 className="text-gradient flex items-center gap-2 mb-4" style={{ fontSize: '1.25rem' }}>
             <Activity size={24} /> Moderator Portal
           </h2>
-          <div style={{ background: 'var(--background)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ background: 'var(--background)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)', position: 'relative' }}>
+             <button 
+               onClick={fetchData}
+               disabled={isSyncing}
+               style={{ 
+                 position: 'absolute', top: '0.5rem', right: '0.5rem', 
+                 background: 'transparent', border: 'none', color: 'var(--primary)', 
+                 cursor: 'pointer', opacity: isSyncing ? 0.5 : 1 
+               }}
+               title="Refresh Data"
+             >
+               <Activity size={14} className={isSyncing ? 'animate-spin' : ''} />
+             </button>
              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Welcome back,</p>
              <p style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{user?.name}</p>
              <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
@@ -175,36 +195,70 @@ const ModeratorDashboard = () => {
         {activeTab === 'attempts' && (
           <div>
             <div className="flex items-center justify-between mb-6">
-               <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Student Exam Attempts</h2>
-               <div className="badge badge-active">{attempts.length} Total</div>
+                <div className="flex items-center gap-4">
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Student Exam Attempts</h2>
+                  <div style={{ position: 'relative' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                    <input 
+                      type="text" 
+                      placeholder="Search Student UID..." 
+                      value={uidSearch}
+                      onChange={(e) => setUidSearch(e.target.value)}
+                      className="input"
+                      style={{ padding: '0.5rem 1rem 0.5rem 2.5rem', width: '200px', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+                <div className="badge badge-active">{attempts.length} Total</div>
             </div>
             <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Student</th>
                   <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Exam</th>
-                  <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Track</th>
+                  <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Scoring</th>
+                  <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Integrity</th>
                   <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Status</th>
-                  <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Violations</th>
                   <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Date Started</th>
-                  <th className="p-3 text-right" style={{ color: 'var(--text-secondary)'}}>Access Override</th>
+                  <th className="p-3 text-right" style={{ color: 'var(--text-secondary)'}}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {attempts.map(attempt => (
+                {attempts.filter(a => !uidSearch || (a.userId?.uid && a.userId.uid.toLowerCase().includes(uidSearch.toLowerCase()))).map(attempt => (
                   <tr key={attempt._id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
-                    <td className="p-3 font-medium">{attempt.userId?.name} <span style={{color: 'var(--text-secondary)', fontSize: '0.85rem', display: 'block'}}>{attempt.userId?.email}</span></td>
+                    <td className="p-3 font-medium">{attempt.userId?.name} <span style={{color: 'var(--text-secondary)', fontSize: '0.85rem', display: 'block'}}>{attempt.userId?.email} | <strong>{attempt.userId?.uid}</strong></span></td>
                     <td className="p-3">{attempt.examId?.title}</td>
                     <td className="p-3">
-                       <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{attempt.userId?.stream || 'N/A'}</span>
+                       {(() => {
+                         const totalMarks = attempt.examId?.questions?.reduce((acc, q) => acc + (q.marks || 1), 0) || 0;
+                         return (
+                           <>
+                             <div style={{ fontWeight: '800', color: 'var(--primary)' }}>{attempt.score || 0} / {totalMarks}</div>
+                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                               ({((attempt.score / (totalMarks || 1)) * 100).toFixed(1)}%)
+                             </div>
+                           </>
+                         );
+                       })()}
+                    </td>
+                    <td className="p-3">
+                       {(() => {
+                         const cheatScore = Math.min(((attempt.violationsCount || 0) / 4) * 100, 100);
+                         const riskColor = cheatScore > 50 ? 'var(--danger)' : (cheatScore > 25 ? 'var(--accent)' : 'var(--secondary)');
+                         return (
+                           <div style={{ minWidth: '100px' }}>
+                             <div style={{ width: '100%', background: 'var(--background)', height: '6px', borderRadius: '3px', overflow: 'hidden', marginBottom: '4px' }}>
+                                <div style={{ width: `${cheatScore}%`, height: '100%', background: riskColor }}></div>
+                             </div>
+                             <span style={{ fontSize: '0.7rem', fontWeight: '800', color: riskColor }}>{cheatScore}% CHEAT PROB.</span>
+                           </div>
+                         );
+                       })()}
                     </td>
                     <td className="p-3">
                        <span className={`badge ${attempt.status === 'terminated' ? 'badge-terminated' : (attempt.status === 'active' ? 'badge-active' : 'badge-submitted')}`}>
                          {attempt.status.toUpperCase()}
                        </span>
-                    </td>
-                    <td className="p-3" style={{ color: attempt.violationsCount >= 3 ? 'var(--danger)' : 'inherit', fontWeight: attempt.violationsCount > 0 ? '600' : '400' }}>
-                      {attempt.violationsCount}
                     </td>
                     <td className="p-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                       {new Date(attempt.startedAt).toLocaleString()}
@@ -242,6 +296,17 @@ const ModeratorDashboard = () => {
                 <AlertCircle size={24} color="var(--danger)" />
               </div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Violation Logs</h2>
+              <div style={{ position: 'relative', marginLeft: 'auto' }}>
+                 <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                 <input 
+                   type="text" 
+                   placeholder="Filter by UID..." 
+                   value={uidSearch}
+                   onChange={(e) => setUidSearch(e.target.value)}
+                   className="input"
+                   style={{ padding: '0.5rem 1rem 0.5rem 2.5rem', width: '200px', fontSize: '0.85rem' }}
+                 />
+              </div>
             </div>
             <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
               <thead>
@@ -254,12 +319,15 @@ const ModeratorDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {logs.map(log => (
+                {logs.filter(log => !['exam_started', 'exam_submitted', 'exam_terminated'].includes(log.eventType) && (!uidSearch || (log.userId?.uid && log.userId.uid.toLowerCase().includes(uidSearch.toLowerCase())) || (log.userId?.email && log.userId.email.toLowerCase().includes(uidSearch.toLowerCase())))).map(log => (
                   <tr key={log._id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td className="p-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                       {new Date(log.timestamp).toLocaleString()}
                     </td>
-                    <td className="p-3 font-medium">{log.userId?.name || 'Unknown'}</td>
+                    <td className="p-3 font-medium">
+                      {log.userId?.name || 'Unknown'}
+                      <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '700' }}>UID: {log.userId?.uid || 'N/A'}</div>
+                    </td>
                     <td className="p-3">
                       <span className="badge" style={{ background: log.eventType.includes('violation') || log.eventType.includes('unknown') || log.eventType.includes('no_face') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(79, 70, 229, 0.1)', color: log.eventType.includes('violation') || log.eventType.includes('unknown') || log.eventType.includes('no_face') ? 'var(--danger)' : 'var(--primary)' }}>
                          {log.eventType.replace('_', ' ').toUpperCase()}
