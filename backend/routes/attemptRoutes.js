@@ -158,7 +158,7 @@ router.get('/my-results', protect, async (req, res) => {
 
         res.json({
             attempts,
-            manualResults: user?.manualResults || ''
+            usn: user?.usn || ''
         });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });

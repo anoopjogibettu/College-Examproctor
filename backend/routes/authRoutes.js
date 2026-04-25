@@ -3,13 +3,21 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
+const crypto = require('crypto');
+const sendEmail = require('../utils/sendEmail');
 
 const router = express.Router();
 
 // Register User
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, password, role, stream, specialization } = req.body;
+        const { name, email, password, role, stream, branch, specialization, year } = req.body;
+        
+        // Enforce MITE email restriction
+        if (!email.endsWith('@mite.ac.in')) {
+            return res.status(400).json({ message: 'Registration is restricted to @mite.ac.in email addresses only.' });
+        }
+        
         const userExists = await User.findOne({ email });
 
         if (userExists) {
@@ -46,8 +54,10 @@ router.post('/register', async (req, res) => {
             uid,
             password: hashedPassword,
             role: role || 'student',
-            stream: stream || 'Degree',
-            specialization: specialization || ''
+            stream: stream || 'Engineering',
+            branch: branch || '',
+            specialization: specialization || '',
+            year: year || 1
         });
 
         res.status(201).json({ _id: user.id, name: user.name, email: user.email, role: user.role, uid: user.uid, stream: user.stream, specialization: user.specialization });
@@ -139,6 +149,88 @@ router.get('/profile', protect, async (req, res) => {
         res.json(user);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Forgot Password
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.body.email });
+
+        if (!user) {
+            return res.status(404).json({ message: 'There is no user with that email' });
+        }
+
+        // Get reset token
+        const resetToken = crypto.randomBytes(20).toString('hex');
+
+        // Hash token and set to resetPasswordToken field
+        user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+        // Set expire (10 mins)
+        user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+        await user.save();
+
+        // Create reset url - reads from frontend env variable in production
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+        const message = `You are receiving this email because you (or someone else) has requested a password reset.\n\nClick the link below to reset your password (valid for 10 minutes):\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`;
+
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: 'ProctorAI - Password Reset Request',
+                message
+            });
+
+            res.status(200).json({ message: 'Email sent' });
+        } catch (err) {
+            console.error('Email sending error:', err);
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpire = undefined;
+            await user.save();
+
+            return res.status(500).json({ message: 'Email could not be sent. Please check your SMTP settings in backend/.env' });
+        }
+    } catch (error) {
+        console.error('FORGOT PASSWORD ERROR:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Reset Password
+router.put('/reset-password/:token', async (req, res) => {
+    try {
+        // Get hashed token
+        const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+        const user = await User.findOne({
+            resetPasswordToken,
+            resetPasswordExpire: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid token or token has expired' });
+        }
+
+        // Set new password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(req.body.password, salt);
+
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+
+        await user.save();
+
+        // Generate a new token so the user can immediately log in if needed
+        const token = generateToken(user._id, user.role, user.stream);
+
+        res.status(200).json({ message: 'Password updated successfully', token });
+    } catch (error) {
+        console.error('RESET PASSWORD ERROR:', error);
+        res.status(500).json({ message: 'Server Error' });
     }
 });
 

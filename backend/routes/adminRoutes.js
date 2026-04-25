@@ -16,7 +16,11 @@ router.get('/logs', protect, moderatorOrAdmin, async (req, res) => {
             { $project: { snapshotVideo: 0 } },
             { $sort: { timestamp: -1 } },
             { $limit: 200 },
-            { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'userId', pipeline: [{ $project: { name: 1, email: 1, stream: 1, specialization: 1 } }] } },
+            { $lookup: { from: 'attempts', localField: 'attemptId', foreignField: '_id', as: 'attemptInfo' } },
+            { $unwind: { path: '$attemptInfo', preserveNullAndEmptyArrays: true } },
+            { $lookup: { from: 'exams', localField: 'attemptInfo.examId', foreignField: '_id', as: 'examInfo' } },
+            { $unwind: { path: '$examInfo', preserveNullAndEmptyArrays: true } },
+            { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'userId', pipeline: [{ $project: { name: 1, email: 1, stream: 1, specialization: 1, usn: 1 } }] } },
             { $unwind: { path: '$userId', preserveNullAndEmptyArrays: true } }
         ]).option({ allowDiskUse: true });
         
@@ -112,8 +116,8 @@ router.get('/users', protect, moderatorOrAdmin, async (req, res) => {
             role: u.role,
             stream: u.stream,
             specialization: u.specialization,
+            usn: u.usn,
             collegeDetails: u.collegeDetails,
-            manualResults: u.manualResults,
             hasFaceRegistered: u.faceEncoding && u.faceEncoding.length > 0,
             createdAt: u.createdAt
         }));
@@ -142,9 +146,17 @@ router.post('/grant-role', protect, mainAdminOnly, async (req, res) => {
             return res.status(400).json({ message: 'Invalid role' });
         }
 
-        const user = await User.findOne({ uid });
+        const normalizedInput = uid.trim().toUpperCase();
+        // Support searching by UID OR Email
+        const user = await User.findOne({ 
+            $or: [
+                { uid: normalizedInput },
+                { email: normalizedInput.toLowerCase() }
+            ]
+        });
+
         if (!user) {
-            return res.status(404).json({ message: 'User not found with this UID' });
+            return res.status(404).json({ message: 'User not found with this UID or Email' });
         }
 
         // Prevent self-demotion or modifying another Main Admin
@@ -160,36 +172,73 @@ router.post('/grant-role', protect, mainAdminOnly, async (req, res) => {
     }
 });
 
-// Search Student by UID
-router.get('/search/:uid', protect, mainAdminOnly, async (req, res) => {
+// Search Student by UID (Comprehensive Report)
+router.get('/search/:uid', protect, moderatorOrAdmin, async (req, res) => {
     try {
-        const searchUser = await User.findOne({ uid: req.params.uid }).select('-password -faceEncoding');
-        if (!searchUser) return res.status(404).json({ message: 'User not found' });
-        res.json(searchUser);
+        const queryInput = req.params.uid.trim();
+        console.log(`[AdminSearch] Searching for: "${queryInput}"`);
+
+        // Try searching by UID first (forced uppercase), then by Email (forced lowercase)
+        const searchUser = await User.findOne({ 
+            $or: [
+                { uid: queryInput.toUpperCase() },
+                { email: queryInput.toLowerCase() }
+            ]
+        }).select('-password -faceEncoding');
+        
+        if (!searchUser) {
+            console.warn(`[AdminSearch] User not found for query: "${queryInput}"`);
+            return res.status(404).json({ message: 'User not found with this UID or Email' });
+        }
+
+        // Fetch all attempts for this user
+        const attempts = await Attempt.find({ userId: searchUser._id })
+            .populate('examId', 'title')
+            .sort({ startedAt: -1 });
+
+        // Fetch all violations (logs) for this user
+        const logs = await Log.find({ userId: searchUser._id })
+            .populate({
+                path: 'attemptId',
+                populate: { path: 'examId', select: 'title' }
+            })
+            .sort({ timestamp: -1 });
+
+        res.json({
+            user: searchUser,
+            attempts,
+            logs
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Search error:', error);
+        res.status(500).json({ message: `Server error: ${error.message}` });
     }
 });
 
 // Update Student Master Details
 router.put('/users/:id', protect, mainAdminOnly, async (req, res) => {
     try {
-        const { name, email, stream, specialization, collegeDetails, manualResults } = req.body;
+        const { name, email, stream, branch, specialization, year, usn, collegeDetails } = req.body;
         const masterUser = await User.findById(req.params.id);
         if (!masterUser) return res.status(404).json({ message: 'User not found' });
 
         // Update fields
+        console.log('Updating user:', masterUser.email, 'with USN:', usn);
         masterUser.name = name || masterUser.name;
         masterUser.email = email || masterUser.email;
-        if (stream) masterUser.stream = stream;
-        masterUser.specialization = specialization ?? masterUser.specialization;
-        masterUser.collegeDetails = collegeDetails ?? masterUser.collegeDetails;
-        masterUser.manualResults = manualResults ?? masterUser.manualResults;
+        masterUser.stream = stream || masterUser.stream;
+        masterUser.branch = branch || masterUser.branch;
+        masterUser.specialization = specialization || masterUser.specialization;
+        masterUser.year = year || masterUser.year;
+        masterUser.usn = usn !== undefined ? usn : masterUser.usn;
+        masterUser.collegeDetails = collegeDetails || masterUser.collegeDetails;
         
         await masterUser.save();
+        console.log('User updated successfully:', masterUser.usn);
         res.json({ message: 'User profile updated successfully', user: masterUser });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Update user error:', error);
+        res.status(500).json({ message: `Server error: ${error.message}` });
     }
 });
 

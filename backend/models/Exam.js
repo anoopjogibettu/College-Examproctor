@@ -10,8 +10,10 @@ const questionSchema = new mongoose.Schema({
 const examSchema = new mongoose.Schema({
     title: { type: String, required: true },
     scheduledFor: { type: Date, required: true },
-    stream: { type: String, enum: ['All', 'PUC', 'Degree', 'Post Graduation', 'Engineering'], default: 'All' },
-    duration: { type: Number, required: true }, // in minutes
+    stream: { type: String, enum: ['All', 'Engineering', 'Post Graduation'], default: 'All' },
+    targetBranch: { type: String, default: 'All' }, // e.g. 'CSE', 'MCA', 'All'
+    targetYear: { type: Number, default: 0 },        // 0 = all years, 1-4 = specific year
+    duration: { type: Number, required: true },
     questions: { type: [questionSchema], default: [] },
     status: { type: String, enum: ['active', 'ended'], default: 'active' },
     resultsPublished: { type: Boolean, default: false }
