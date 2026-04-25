@@ -72,7 +72,7 @@ const Login = () => {
                   style={{ paddingLeft: '2.75rem' }}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="yourname@mite.ac.in"
+                  placeholder="student@mite.ac.in"
                   required
                 />
               </div>
