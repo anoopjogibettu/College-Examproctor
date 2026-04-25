@@ -202,38 +202,29 @@ router.post('/forgot-password', async (req, res) => {
             return res.status(404).json({ message: 'There is no user with that email' });
         }
 
-        // Get reset token
-        const resetToken = crypto.randomBytes(20).toString('hex');
+        // Get reset OTP (6 digits)
+        const resetOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Hash token and set to resetPasswordToken field
-        user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        // Use UserOTP model for reset OTP as well
+        await UserOTP.findOneAndUpdate(
+            { email: user.email },
+            { otp: resetOtp, expiresAt: Date.now() + 10 * 60 * 1000 },
+            { upsert: true, new: true }
+        );
 
-        // Set expire (10 mins)
-        user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
-
-        await user.save();
-
-        // Create reset url - reads from frontend env variable in production
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-
-        const message = `You are receiving this email because you (or someone else) has requested a password reset.\n\nClick the link below to reset your password (valid for 10 minutes):\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`;
+        const message = `You are receiving this email because you (or someone else) has requested a password reset.\n\nYour Password Reset OTP is: ${resetOtp}\n\nThis code is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`;
 
         try {
             await sendEmail({
                 email: user.email,
-                subject: 'ProctorAI - Password Reset Request',
+                subject: 'ProctorAI - Password Reset OTP',
                 message
             });
 
-            res.status(200).json({ message: 'Email sent' });
+            res.status(200).json({ message: 'Reset OTP sent to email' });
         } catch (err) {
             console.error('Email sending error:', err);
-            user.resetPasswordToken = undefined;
-            user.resetPasswordExpire = undefined;
-            await user.save();
-
-            return res.status(500).json({ message: 'Email could not be sent. Please check your SMTP settings in backend/.env' });
+            return res.status(500).json({ message: 'Email could not be sent. Please check SMTP settings.' });
         }
     } catch (error) {
         console.error('FORGOT PASSWORD ERROR:', error);
@@ -241,19 +232,19 @@ router.post('/forgot-password', async (req, res) => {
     }
 });
 
-// Reset Password
-router.put('/reset-password/:token', async (req, res) => {
+// Reset Password (Modified to use OTP)
+router.post('/reset-password', async (req, res) => {
     try {
-        // Get hashed token
-        const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+        const { email, otp, password } = req.body;
 
-        const user = await User.findOne({
-            resetPasswordToken,
-            resetPasswordExpire: { $gt: Date.now() }
-        });
+        const otpRecord = await UserOTP.findOne({ email });
+        if (!otpRecord || otpRecord.otp !== otp) {
+            return res.status(400).json({ message: 'Invalid or expired OTP' });
+        }
 
+        const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'Invalid token or token has expired' });
+            return res.status(404).json({ message: 'User not found' });
         }
 
         // Set new password
@@ -265,7 +256,10 @@ router.put('/reset-password/:token', async (req, res) => {
 
         await user.save();
 
-        // Generate a new token so the user can immediately log in if needed
+        // Delete OTP after success
+        await UserOTP.deleteOne({ email });
+
+        // Generate a new token
         const token = generateToken(user._id, user.role, user.stream);
 
         res.status(200).json({ message: 'Password updated successfully', token });
