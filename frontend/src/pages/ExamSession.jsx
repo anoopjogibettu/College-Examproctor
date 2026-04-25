@@ -3,7 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as faceapi from '@vladmandic/face-api';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { AuthContext } from '../context/AuthContext';const ExamSession = () => {
+import { AuthContext } from '../context/AuthContext';
+import { Shield, Clock, ChevronRight, ChevronLeft, Save, AlertTriangle, User, Camera, MessageSquare } from 'lucide-react';
+
+const ExamSession = () => {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -214,6 +217,24 @@ import { AuthContext } from '../context/AuthContext';const ExamSession = () => {
       }
     };
   }, [id, user]);
+  
+  // Autosave Logic (Debounced)
+  useEffect(() => {
+    if (!Object.keys(answers).length || !attemptIdRef.current) return;
+    
+    const timer = setTimeout(async () => {
+       try {
+         await axios.patch(`${import.meta.env.VITE_API_URL}/api/attempts/${attemptIdRef.current}/autosave`, 
+           { answers }, 
+           { headers: { Authorization: `Bearer ${user.token}` } }
+         );
+       } catch (err) {
+         console.error('Autosave failed', err);
+       }
+    }, 5000); // Save every 5 seconds of inactivity
+
+    return () => clearTimeout(timer);
+  }, [answers, user.token]);
 
   const startScreenShare = async () => {
     try {
@@ -497,20 +518,33 @@ import { AuthContext } from '../context/AuthContext';const ExamSession = () => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  if (!exam) return <div style={{ padding: '20px' }}>Loading Exam Environment...</div>;
+  if (!exam) return (
+    <div style={{ minHeight: '100vh', background: 'var(--background)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+       <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
+       <p style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>Initialising Secure Environment...</p>
+    </div>
+  );
 
-  // Intercept Render strictly until Screen Permission is explicitly granted
   if (!screenShared) {
       return (
-        <div style={{ padding: '40px 20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
-          <h2>Screen Share Required</h2>
-          <p>This exam actively records your entire screen. You must explicitly grant screen recording permission.</p>
-          <button onClick={startScreenShare} style={{ padding: '10px 20px', margin: '10px', background: '#0056b3', color: 'white', border: 'none', cursor: 'pointer' }}>
-            Accept & Share Screen
-          </button>
-          <button onClick={() => navigate('/')} style={{ padding: '10px 20px', margin: '10px', cursor: 'pointer' }}>
-            Cancel Exam
-          </button>
+        <div style={{ minHeight: '100vh', background: 'var(--background)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+          <div className="card animate-fade-in" style={{ maxWidth: '500px', padding: '3rem', textAlign: 'center' }}>
+            <div style={{ background: 'rgba(79, 70, 229, 0.1)', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem' }}>
+               <Shield size={40} color="var(--primary)" />
+            </div>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: '800', marginBottom: '1rem' }}>Security Verification</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '2rem' }}>
+              To ensure academic integrity, this exam requires a persistent screen-sharing session. Your activity will be monitored and recorded.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <button className="btn btn-primary" onClick={startScreenShare} style={{ padding: '1rem' }}>
+                Grant & Initialize Session
+              </button>
+              <button className="btn" onClick={() => navigate('/')} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)' }}>
+                Return to Dashboard
+              </button>
+            </div>
+          </div>
         </div>
       );
   }
@@ -518,133 +552,255 @@ import { AuthContext } from '../context/AuthContext';const ExamSession = () => {
   const currentQuestion = exam.questions?.[currentQuestionIdx];
   const isAnswered = (idx) => {
     const q = exam.questions?.[idx];
-    return q && answers.hasOwnProperty(q._id);
+    return q && (answers[q._id] !== undefined && answers[q._id] !== '');
   };
 
   // Actual Exam UI - Simplified for Performance
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--background)', color: 'var(--text-primary)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Proctor Message Overlay */}
-      {proctorMessage && (
-        <div style={{ padding: '15px', background: '#ffebee', border: '2px solid #d32f2f', marginBottom: '20px' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#d32f2f' }}>Message from Proctor</h3>
-          <p style={{ margin: '0 0 15px 0', fontWeight: 'bold' }}>"{proctorMessage}"</p>
-          <button onClick={() => setProctorMessage(null)} style={{ padding: '5px 15px' }}>Acknowledge</button>
+      {/* HUD: TOP STATUS BAR */}
+      <header style={{ height: '70px', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div className="flex items-center gap-4">
+           <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }}></div>
+           <div>
+             <h1 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>{exam.title}</h1>
+             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>Proctored Institutional Assessment</p>
+           </div>
         </div>
-      )}
 
-      {/* Header Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #eee', paddingBottom: '10px', marginBottom: '20px' }}>
-        <div>
-          <h2 style={{ margin: 0 }}>{exam.title}</h2>
-          <p style={{ margin: '5px 0 0 0' }}>Question {currentQuestionIdx + 1} of {exam.questions?.length}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '3rem' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(0,0,0,0.05)', padding: '0.5rem 1.25rem', borderRadius: '30px', border: '1px solid var(--border)' }}>
+              <Clock size={18} color="var(--primary)" />
+              <span style={{ fontSize: '1.25rem', fontWeight: '800', fontFamily: 'monospace', letterSpacing: '1px' }}>{formatTime(timeRemaining)}</span>
+           </div>
+           
+           <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: '700', marginBottom: '2px' }}>Security State</p>
+                <p style={{ fontSize: '0.85rem', fontWeight: '700', color: status.includes('Warning') ? 'var(--danger)' : '#10b981', margin: 0 }}>{status.toUpperCase()}</p>
+              </div>
+           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '1.2em', fontWeight: 'bold' }}>Time: {formatTime(timeRemaining)}</div>
-          <div style={{ fontSize: '0.9em', color: '#666' }}>Answered: {Object.keys(answers).length} / {exam.questions?.length}</div>
-        </div>
-      </div>
+      </header>
 
-      {/* Active Question Area */}
-      <div style={{ minHeight: '300px', marginBottom: '20px' }}>
-        {exam.questions?.length === 0 ? (
-          <p>No questions available.</p>
-        ) : (
-          <div>
-            <h3 style={{ marginBottom: '20px', lineHeight: '1.5' }}>{currentQuestion?.questionText}</h3>
-            
-            {(!currentQuestion.type || currentQuestion.type === 'mcq') && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {currentQuestion?.options.map((opt, oIdx) => {
-                  const isSelected = answers[currentQuestion._id] === oIdx;
+      <main style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 320px', gap: '2rem', padding: '2rem', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
+        
+        {/* LEFT: WORKSPACE */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* Proctor Message Alert */}
+          {proctorMessage && (
+            <div className="card animate-shake" style={{ background: 'rgba(239, 68, 68, 0.05)', border: '2px solid var(--danger)', padding: '1.5rem', position: 'relative' }}>
+              <div className="flex items-center gap-3 mb-2">
+                <AlertTriangle color="var(--danger)" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--danger)' }}>URGENT PROCTOR MESSAGE</h3>
+              </div>
+              <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1.5rem' }}>"{proctorMessage}"</p>
+              <button className="btn btn-primary" style={{ background: 'var(--danger)', border: 'none' }} onClick={() => setProctorMessage(null)}>
+                Acknowledge & Dismiss
+              </button>
+            </div>
+          )}
+
+          {/* QUESTION CARD */}
+          <div className="card animate-fade-in" style={{ padding: '2.5rem 3rem 3rem 3rem', flex: 1, background: 'var(--surface)', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <div style={{ background: 'var(--primary)', color: 'white', padding: '0.5rem 1.5rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '800', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
+                    QUESTION {currentQuestionIdx + 1}
+                  </div>
+                  <div style={{ background: 'rgba(79, 70, 229, 0.08)', color: 'var(--primary)', padding: '0.5rem 1.25rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '800', border: '1px solid rgba(79, 70, 229, 0.2)' }}>
+                    {currentQuestion?.marks || 1} { (currentQuestion?.marks || 1) === 1 ? 'MARK' : 'MARKS' }
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {currentQuestion?.type || 'MCQ'}
+                </div>
+             </div>
+
+             {exam.questions?.length === 0 ? (
+               <div style={{ padding: '4rem', textAlign: 'center' }}>No questions found.</div>
+             ) : (
+               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                 <h2 style={{ fontSize: '1.5rem', fontWeight: '700', lineHeight: '1.4', marginBottom: '2rem', color: 'var(--text-primary)' }}>
+                   {currentQuestion?.questionText}
+                 </h2>
+
+                 <div style={{ flex: 1 }}>
+                   {(!currentQuestion.type || currentQuestion.type === 'mcq') && (
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                       {currentQuestion?.options.map((opt, oIdx) => {
+                         const isSelected = answers[currentQuestion._id] === oIdx;
+                         return (
+                           <label 
+                             key={oIdx} 
+                             className="animate-slide-up"
+                             style={{ 
+                               display: 'flex', 
+                               alignItems: 'center', 
+                               gap: '1.25rem',
+                               padding: '1.25rem 1.5rem', 
+                               borderRadius: '12px',
+                               border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)', 
+                               background: isSelected ? 'rgba(79, 70, 229, 0.05)' : 'var(--background)', 
+                               cursor: 'pointer',
+                               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                               animationDelay: `${oIdx * 0.05}s`
+                             }}
+                           >
+                             <div style={{ 
+                               width: '24px', 
+                               height: '24px', 
+                               borderRadius: '50%', 
+                               border: isSelected ? '6px solid var(--primary)' : '2px solid var(--border)',
+                               background: 'white',
+                               transition: 'all 0.2s'
+                             }}></div>
+                             <input 
+                               type="radio" 
+                               name={`q-${currentQuestion._id}`} 
+                               checked={isSelected}
+                               onChange={() => handleAnswerSelection(currentQuestion._id, oIdx)}
+                               style={{ display: 'none' }}
+                             />
+                             <span style={{ fontSize: '1.1rem', fontWeight: isSelected ? '700' : '500', color: isSelected ? 'var(--primary)' : 'var(--text-primary)' }}>
+                               {opt}
+                             </span>
+                           </label>
+                         );
+                       })}
+                     </div>
+                   )}
+
+                   {currentQuestion.type === 'text' && (
+                     <textarea 
+                       className="input"
+                       style={{ width: '100%', minHeight: '300px', padding: '1.5rem', fontSize: '1.1rem', lineHeight: '1.6', background: 'var(--background)' }}
+                       placeholder="Type your structured response here..."
+                       value={answers[currentQuestion._id] || ''}
+                       onChange={(e) => handleAnswerText(currentQuestion._id, e.target.value)}
+                     />
+                   )}
+
+                   {currentQuestion.type === 'code' && (
+                     <textarea 
+                       className="input"
+                       style={{ width: '100%', minHeight: '400px', padding: '1.5rem', fontFamily: 'monospace', fontSize: '1rem', background: '#1e1e2e', color: '#cdd6f4', border: 'none' }}
+                       placeholder="// Implement your solution here..."
+                       value={answers[currentQuestion._id] || ''}
+                       onChange={(e) => handleAnswerText(currentQuestion._id, e.target.value)}
+                     />
+                   )}
+                 </div>
+
+                 {/* BOTTOM ACTIONS */}
+                 <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <button 
+                      className="btn"
+                      disabled={currentQuestionIdx === 0}
+                      onClick={() => setCurrentQuestionIdx(idx => idx - 1)}
+                      style={{ padding: '0.8rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      <ChevronLeft size={20} /> Previous
+                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                       <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                         Progress: {Object.keys(answers).length} / {exam.questions?.length} Saved
+                       </span>
+                       {currentQuestionIdx === (exam.questions?.length - 1) ? (
+                         <button onClick={submitExam} className="btn btn-primary" style={{ padding: '0.8rem 3rem', background: 'var(--primary)', fontWeight: '800' }}>
+                           Final Submission
+                         </button>
+                       ) : (
+                         <button onClick={() => setCurrentQuestionIdx(idx => idx + 1)} className="btn btn-primary" style={{ padding: '0.8rem 2.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                           Next Question <ChevronRight size={20} />
+                         </button>
+                       )}
+                    </div>
+                 </div>
+               </div>
+             )}
+          </div>
+        </div>
+
+        {/* RIGHT: NAVIGATION PALETTE & MONITOR */}
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* CAMERA FEED CARD */}
+          <div className="card" style={{ padding: '0.75rem', background: 'var(--surface)', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', background: 'black', aspectRatio: '4/3' }}>
+               <video 
+                ref={videoRef} 
+                autoPlay 
+                muted 
+                onPlay={handleVideoPlay}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+              <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', padding: '0.25rem 0.75rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                 <Camera size={12} color="#10b981" />
+                 <span style={{ fontSize: '0.65rem', color: 'white', fontWeight: '700', letterSpacing: '0.5px' }}>LIVE PROCTORING ACTIVE</span>
+              </div>
+            </div>
+          </div>
+
+          {/* QUESTION PALETTE */}
+          <div className="card" style={{ padding: '1.5rem', background: 'var(--surface)', flex: 1 }}>
+             <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1.5rem', letterSpacing: '1px' }}>Assessment Navigator</h3>
+             
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                {exam.questions?.map((_, idx) => {
+                  const active = currentQuestionIdx === idx;
+                  const answered = isAnswered(idx);
                   return (
-                    <label key={oIdx} style={{ display: 'block', padding: '10px', border: '1px solid #ccc', background: isSelected ? '#e3f2fd' : '#fff', cursor: 'pointer' }}>
-                      <input 
-                        type="radio" 
-                        name={`q-${currentQuestion._id}`} 
-                        checked={isSelected}
-                        onChange={() => handleAnswerSelection(currentQuestion._id, oIdx)}
-                        style={{ marginRight: '10px' }}
-                      />
-                      {String.fromCharCode(65 + oIdx)}. {opt}
-                    </label>
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentQuestionIdx(idx)}
+                      style={{
+                        height: '45px',
+                        borderRadius: '8px',
+                        border: active ? '2px solid var(--primary)' : '1px solid var(--border)',
+                        background: active ? 'rgba(79, 70, 229, 0.1)' : (answered ? 'var(--primary)' : 'transparent'),
+                        color: active ? 'var(--primary)' : (answered ? 'white' : 'var(--text-secondary)'),
+                        fontWeight: '700',
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {idx + 1}
+                    </button>
                   );
                 })}
-              </div>
-            )}
+             </div>
 
-            {currentQuestion.type === 'text' && (
-              <textarea 
-                style={{ width: '100%', minHeight: '150px', padding: '10px', fontFamily: 'inherit' }}
-                placeholder="Type your answer here..."
-                value={answers[currentQuestion._id] || ''}
-                onChange={(e) => handleAnswerText(currentQuestion._id, e.target.value)}
-              />
-            )}
+             <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                   <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--primary)' }}></div>
+                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Attempted</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                   <div style={{ width: '12px', height: '12px', borderRadius: '3px', border: '1px solid var(--border)' }}></div>
+                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Unvisited</span>
+                </div>
+             </div>
 
-            {currentQuestion.type === 'code' && (
-              <textarea 
-                style={{ width: '100%', minHeight: '200px', padding: '10px', fontFamily: 'monospace', background: '#f5f5f5' }}
-                placeholder="// Write your code here"
-                value={answers[currentQuestion._id] || ''}
-                onChange={(e) => handleAnswerText(currentQuestion._id, e.target.value)}
-              />
-            )}
+             <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
+                <button 
+                  onClick={() => { if(window.confirm("End exam immediately?")) submitExam(); }}
+                  style={{ width: '100%', background: 'transparent', border: '1px dashed var(--border)', padding: '0.75rem', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  Terminate Session Early
+                </button>
+             </div>
           </div>
-        )}
-      </div>
+        </aside>
 
-      {/* Navigation Controls */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #eee', paddingTop: '20px' }}>
-        <button 
-          disabled={currentQuestionIdx === 0}
-          onClick={() => setCurrentQuestionIdx(idx => idx - 1)}
-          style={{ padding: '10px 20px', cursor: currentQuestionIdx === 0 ? 'not-allowed' : 'pointer' }}
-        >
-          Previous
-        </button>
-
-        {currentQuestionIdx === (exam.questions?.length - 1) ? (
-          <button onClick={submitExam} style={{ padding: '10px 20px', background: '#0056b3', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
-            Submit Exam
-          </button>
-        ) : (
-          <button onClick={() => setCurrentQuestionIdx(idx => idx + 1)} style={{ padding: '10px 20px', cursor: 'pointer' }}>
-            Next Question
-          </button>
-        )}
-      </div>
-
-      {/* Emergency Action */}
-      <div style={{ textAlign: 'center', marginTop: '20px' }}>
-        <button 
-          onClick={() => { if(window.confirm("End exam immediately?")) submitExam(); }}
-          style={{ background: 'none', border: 'none', color: '#999', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8em' }}
-        >
-          Emergency Exit (Submit Current Progress)
-        </button>
-      </div>
-
-      {/* Proctoring Monitor Bar */}
-      <div style={{ marginTop: '40px', padding: '10px', border: '1px solid #ddd', background: '#f9f9f9', display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          muted 
-          onPlay={handleVideoPlay}
-          style={{ width: '120px', height: '90px', background: '#000', objectFit: 'cover' }}
-        />
-        <div style={{ flex: 1 }}>
-          <h4 style={{ margin: '0 0 5px 0' }}>Security Monitor</h4>
-          <p style={{ margin: '0 0 5px 0', fontSize: '0.9em', color: status.includes('Warning') ? '#d32f2f' : '#2e7d32' }}>
-            <strong>Status:</strong> {status}
-          </p>
-          <p style={{ margin: 0, fontSize: '0.9em' }}>
-            <strong>Violations:</strong> <span style={{ color: violations > 0 ? '#d32f2f' : 'inherit' }}>{violations} / 4</span>
-          </p>
-        </div>
-      </div>
+      </main>
 
     </div>
   );

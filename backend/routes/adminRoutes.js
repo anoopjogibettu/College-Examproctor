@@ -20,7 +20,7 @@ router.get('/logs', protect, moderatorOrAdmin, async (req, res) => {
             { $unwind: { path: '$attemptInfo', preserveNullAndEmptyArrays: true } },
             { $lookup: { from: 'exams', localField: 'attemptInfo.examId', foreignField: '_id', as: 'examInfo' } },
             { $unwind: { path: '$examInfo', preserveNullAndEmptyArrays: true } },
-            { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'userId', pipeline: [{ $project: { name: 1, email: 1, stream: 1, specialization: 1, usn: 1 } }] } },
+            { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'userId', pipeline: [{ $project: { name: 1, email: 1, stream: 1, specialization: 1, usn: 1, uid: 1 } }] } },
             { $unwind: { path: '$userId', preserveNullAndEmptyArrays: true } }
         ]).option({ allowDiskUse: true });
         
@@ -46,8 +46,8 @@ router.get('/logs/:id/snapshot', protect, moderatorOrAdmin, async (req, res) => 
 router.get('/attempts', protect, moderatorOrAdmin, async (req, res) => {
     try {
         const attempts = await Attempt.find({})
-            .populate('userId', 'name email stream specialization')
-            .populate('examId', 'title questions')
+            .populate('userId', 'name email stream specialization uid usn')
+            .populate('examId', 'title questions uid')
             .sort({ startedAt: -1 });
             
         let result = attempts;
@@ -165,6 +165,18 @@ router.post('/grant-role', protect, mainAdminOnly, async (req, res) => {
         }
 
         await User.updateOne({ _id: user._id }, { $set: { role: newRole } });
+
+        // Notify user of role change
+        try {
+            const sendEmail = require('../utils/sendEmail');
+            await sendEmail({
+                email: user.email,
+                subject: '⚖️ Institutional Role Updated',
+                message: `Hello ${user.name},\n\nYour institutional role on the MITE Exam Portal has been updated by the administration.\n\nNew Role: ${newRole.toUpperCase()}\n\nPlease re-login to the portal to activate your new permissions: https://collageexamportal.vercel.app/`
+            });
+        } catch (mailErr) {
+            console.error('Failed to send role change email:', mailErr);
+        }
 
         res.json({ message: `Success: ${user.name} is now a ${newRole}` });
     } catch (error) {

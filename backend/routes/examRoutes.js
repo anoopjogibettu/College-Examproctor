@@ -49,16 +49,66 @@ router.get('/', protect, async (req, res) => {
 router.post('/create', protect, mainAdminOnly, async (req, res) => {
     try {
         const { title, duration, questions, scheduledFor, stream, targetBranch, targetYear } = req.body;
-        const exam = await Exam.create({ 
-            title, 
-            duration, 
-            questions, 
-            scheduledFor,
-            stream: stream || 'All',
-            targetBranch: targetBranch || 'All',
-            targetYear: targetYear ? parseInt(targetYear) : 0,
-            status: 'active' 
-        });
+        
+        // Generate a unique exam UID with retry on collision
+        const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        const generateUid = () => {
+            let id = 'EXM-';
+            for (let i = 0; i < 4; i++) {
+                id += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return id;
+        };
+
+        let exam;
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                const examUid = generateUid();
+                exam = await Exam.create({ 
+                    uid: examUid,
+                    title, 
+                    duration, 
+                    questions, 
+                    scheduledFor,
+                    stream: stream || 'All',
+                    targetBranch: targetBranch || 'All',
+                    targetYear: targetYear ? parseInt(targetYear) : 0,
+                    status: 'active' 
+                });
+                break;
+            } catch (createErr) {
+                if (createErr.code === 11000 && retries > 1) {
+                    retries--;
+                    continue;
+                }
+                throw createErr;
+            }
+        }
+
+        // Notify targeted students
+        try {
+            const User = require('../models/User');
+            const sendEmail = require('../utils/sendEmail');
+            
+            const query = {};
+            if (exam.stream !== 'All') query.stream = exam.stream;
+            if (exam.targetBranch !== 'All') query.branch = exam.targetBranch;
+            if (exam.targetYear !== 0) query.year = exam.targetYear;
+
+            const students = await User.find(query).select('email name');
+            
+            students.forEach(student => {
+                sendEmail({
+                    email: student.email,
+                    subject: `📝 New Exam Scheduled: ${exam.title}`,
+                    message: `Hello ${student.name},\n\nA new exam has been scheduled for your cohort:\n\nTitle: ${exam.title}\nDuration: ${exam.duration} Minutes\nScheduled For: ${new Date(exam.scheduledFor).toLocaleString()}\n\nYou can view the details and prepare on the portal: https://collageexamportal.vercel.app/`
+                }).catch(err => console.error(`Failed to send exam notification to ${student.email}`, err));
+            });
+        } catch (mailErr) {
+            console.error('Failed to broadcast exam notification:', mailErr);
+        }
+
         res.status(201).json(exam);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
@@ -111,9 +161,30 @@ router.put('/:id/publish', protect, mainAdminOnly, async (req, res) => {
         
         exam.resultsPublished = !exam.resultsPublished;
         await exam.save();
+
+        if (exam.resultsPublished) {
+            const Attempt = require('../models/Attempt');
+            const User = require('../models/User');
+            const sendEmail = require('../utils/sendEmail');
+
+            // Find all students who attempted this exam
+            const attempts = await Attempt.find({ examId: exam._id }).populate('userId', 'email name');
+            
+            // Send emails to each student
+            attempts.forEach(attempt => {
+                if (attempt.userId && attempt.userId.email) {
+                    sendEmail({
+                        email: attempt.userId.email,
+                        subject: `📊 Results Published: ${exam.title}`,
+                        message: `Hello ${attempt.userId.name},\n\nThe results for "${exam.title}" have been officially published by the institution.\n\nYou can now view your detailed transcript and performance analytics on the portal.\n\nAccess Results: https://collageexamportal.vercel.app/results\n\nBest regards,\nMITE Exam Cell`
+                    }).catch(err => console.error(`Failed to send result email to ${attempt.userId.email}`, err));
+                }
+            });
+        }
         
         res.json({ message: `Results ${exam.resultsPublished ? 'published' : 'hidden'} successfully`, exam });
     } catch (error) {
+        console.error('Publish results error:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 });

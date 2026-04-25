@@ -34,7 +34,7 @@ router.post('/send-otp', async (req, res) => {
         await sendEmail({
             email,
             subject: 'MITE Exam Portal - Registration OTP',
-            message: `Your OTP for account registration is: ${otp}\n\nThis code is valid for 10 minutes.`
+            message: `Your OTP for account registration is: ${otp}\n\nThis code is valid for 10 minutes.\n\nAccess the portal here: https://collageexamportal.vercel.app/`
         });
 
         res.json({ message: 'OTP sent to email.' });
@@ -212,7 +212,7 @@ router.post('/forgot-password', async (req, res) => {
             { upsert: true, new: true }
         );
 
-        const message = `You are receiving this email because you (or someone else) has requested a password reset.\n\nYour Password Reset OTP is: ${resetOtp}\n\nThis code is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`;
+        const message = `You are receiving this email because you (or someone else) has requested a password reset.\n\nYour Password Reset OTP is: ${resetOtp}\n\nThis code is valid for 10 minutes.\n\nAccess the portal to continue: https://collageexamportal.vercel.app/\n\nIf you did not request this, please ignore this email.`;
 
         try {
             await sendEmail({

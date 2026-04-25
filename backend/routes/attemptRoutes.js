@@ -41,6 +41,25 @@ router.post('/start', protect, async (req, res) => {
 });
 
 // Record Violation
+// Autosave Progress
+router.patch('/:id/autosave', protect, async (req, res) => {
+    try {
+        const attempt = await Attempt.findById(req.params.id);
+        if (!attempt || attempt.userId.toString() !== req.user.id) {
+            return res.status(404).json({ message: 'Attempt not found' });
+        }
+        if (attempt.status !== 'active') {
+            return res.status(400).json({ message: 'Attempt is no longer active' });
+        }
+
+        attempt.answers = { ...attempt.answers, ...req.body.answers };
+        await attempt.save();
+        res.json({ message: 'Progress saved' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 router.post('/:id/violation', protect, async (req, res) => {
     try {
         const { eventType, description, snapshotVideo } = req.body;
@@ -117,7 +136,7 @@ router.post('/:id/submit', protect, async (req, res) => {
                     if (q.type && q.type !== 'mcq') {
                         requiresManualReview = true;
                     } else if (studentAnswer && studentAnswer === q.correctAnswer) {
-                        score += 1;
+                        score += (q.marks || 1);
                     }
                 });
             }
