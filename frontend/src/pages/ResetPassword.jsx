@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 
 const ResetPassword = () => {
-  const { token } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const queryEmail = new URLSearchParams(location.search).get('email') || '';
+  
+  const [email, setEmail] = useState(queryEmail);
+  const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -23,7 +27,11 @@ const ResetPassword = () => {
     setError('');
 
     try {
-      const { data } = await axios.put(`${import.meta.env.VITE_API_URL}/api/auth/reset-password/${token}`, { password });
+      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/reset-password`, { 
+        email, 
+        otp, 
+        password 
+      });
       setMessage(data.message || 'Password updated successfully');
       
       // Redirect to login after 3 seconds
@@ -31,7 +39,7 @@ const ResetPassword = () => {
         navigate('/login');
       }, 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid or expired token.');
+      setError(err.response?.data?.message || 'Invalid or expired OTP.');
     } finally {
       setLoading(false);
     }
@@ -51,6 +59,33 @@ const ResetPassword = () => {
         {error && <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem', textAlign: 'center' }}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="form-group m-0">
+            <label className="form-label" htmlFor="email">Email Address</label>
+            <input
+              id="email"
+              type="email"
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="student@example.com"
+              style={{ fontSize: '1.05rem', padding: '0.8rem 1rem' }}
+            />
+          </div>
+
+          <div className="form-group m-0">
+            <label className="form-label" htmlFor="otp">Verification OTP</label>
+            <input
+              id="otp"
+              type="text"
+              className="input"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              required
+              placeholder="6-digit code"
+              style={{ fontSize: '1.05rem', padding: '0.8rem 1rem', border: '1px solid var(--primary)' }}
+            />
+          </div>
           <div className="form-group m-0">
             <label className="form-label" htmlFor="password">New Password</label>
             <input
