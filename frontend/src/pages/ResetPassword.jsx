@@ -68,7 +68,7 @@ const ResetPassword = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="student@example.com"
+              placeholder="student@mite.ac.in"
               style={{ fontSize: '1.05rem', padding: '0.8rem 1rem' }}
             />
           </div>
