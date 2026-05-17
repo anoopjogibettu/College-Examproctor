@@ -35,8 +35,6 @@ const Register = () => {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const { register, sendOtp } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -153,7 +151,7 @@ const Register = () => {
                   value={email}
                   onChange={e => { setEmail(e.target.value); setOtpSent(false); }}
                   required
-                  placeholder="student@mite.ac.in"
+                  placeholder="yourname@mite.ac.in"
                   style={{ flex: 1 }}
                 />
                 <button

@@ -1,8 +1,10 @@
 :root {
   /* MITE Official Colors (from mite.ac.in & Logo.svg) */
-  --primary: #09529B;        /* MITE Navy Blue */
+  --primary: #09529B;
+  /* MITE Navy Blue */
   --primary-hover: #073d75;
-  --accent: #F48120;         /* MITE Orange */
+  --accent: #F48120;
+  /* MITE Orange */
   --accent-hover: #d96d0e;
   --secondary: #10B981;
   --secondary-hover: #059669;
@@ -313,8 +315,15 @@ th {
   background: var(--surface-hover);
 }
 
-th:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
-th:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+th:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+th:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
 
 td {
   padding: 1.25rem !important;
@@ -331,7 +340,7 @@ tbody tr:hover td {
 }
 
 /* Stop large data from overflowing */
-main > div {
+main>div {
   overflow-x: auto;
   padding-bottom: 1rem;
 }
@@ -451,4 +460,76 @@ main > div {
   margin-top: 3rem;
   padding-top: 2rem;
   border-top: 1px solid var(--border);
+}
+
+/* Institutional Status & Role Badges */
+.badge-role {
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--primary);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-moderator {
+  background: #6366f1;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+}
+
+.badge-admin {
+  background: #f43f5e;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.2);
+}
+
+/* Advanced Interaction & Glass States */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+[data-theme='dark'] .glass-card {
+  background: rgba(13, 27, 46, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Custom Scrollbar for Premium Feel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
