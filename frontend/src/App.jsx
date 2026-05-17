@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import { ThemeProvider, ThemeContext } from './context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
@@ -12,6 +12,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import ModeratorDashboard from './pages/ModeratorDashboard';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Profile from './pages/Profile';
+import Results from './pages/Results';
+import { Link } from 'react-router-dom';
 
 const PrivateRoute = ({ children, roleRequired }) => {
   const { user } = useContext(AuthContext);
@@ -23,6 +26,13 @@ const PrivateRoute = ({ children, roleRequired }) => {
 // MITE Top Navigation Bar
 const MITENavbar = () => {
   const { theme, toggleTheme } = useContext(ThemeContext);
+  const { user } = useContext(AuthContext);
+  const location = useLocation();
+
+  if (location.pathname.startsWith('/exam/')) {
+    return null;
+  }
+
   return (
     <nav style={{
       background: 'var(--primary)',
@@ -45,38 +55,46 @@ const MITENavbar = () => {
         <img src="/logo_name.png" alt="MITE" style={{ height: '32px', filter: 'brightness(0) invert(1)' }} />
       </a>
 
-      {/* Center: Portal title */}
-      <div style={{ textAlign: 'center' }}>
+      {/* Center: Portal title (Absolute Centered) */}
+      <div style={{ textAlign: 'center', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
         <div style={{ fontSize: '1rem', fontWeight: '700', letterSpacing: '0.5px', color: '#fff' }}>
           Exam Portal
         </div>
-        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)', letterSpacing: '1px', textTransform: 'uppercase' }}>
-          Mangalore Institute of Technology & Engineering
-        </div>
       </div>
 
-      {/* Right: Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        title="Toggle Theme"
-        style={{
-          background: 'rgba(255,255,255,0.15)',
-          border: '1px solid rgba(255,255,255,0.3)',
-          borderRadius: '8px',
-          color: 'white',
-          width: '38px',
-          height: '38px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          transition: 'background 0.2s'
-        }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-      >
-        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-      </button>
+      {/* Right Cluster: Student Links + Theme Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+        {/* Student Specific Links - Hidden from Admin/Mod */}
+        {user && user.role === 'student' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <Link to="/" style={{ color: 'white', textDecoration: 'none', fontSize: '0.9rem', fontWeight: '600', opacity: 0.85, transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.85}>Exams</Link>
+            <Link to="/results" style={{ color: 'white', textDecoration: 'none', fontSize: '0.9rem', fontWeight: '600', opacity: 0.85, transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.85}>Results</Link>
+            <Link to="/profile" style={{ color: 'white', textDecoration: 'none', fontSize: '0.9rem', fontWeight: '600', opacity: 0.85, transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.85}>Profile</Link>
+          </div>
+        )}
+
+        <button
+          onClick={toggleTheme}
+          title="Toggle Theme"
+          style={{
+            background: 'rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: '8px',
+            color: 'white',
+            width: '38px',
+            height: '38px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'background 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+        >
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+      </div>
     </nav>
   );
 };
@@ -89,6 +107,8 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      <Route path="/results" element={<PrivateRoute><Results /></PrivateRoute>} />
+      <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       <Route path="/face-setup" element={<PrivateRoute><FaceSetup /></PrivateRoute>} />
       <Route path="/exam/:id" element={<PrivateRoute><ExamSession /></PrivateRoute>} />
       <Route path="/admin" element={<PrivateRoute roleRequired="admin"><AdminDashboard /></PrivateRoute>} />

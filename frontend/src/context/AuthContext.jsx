@@ -8,11 +8,34 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-        setLoading(false);
+        const initAuth = async () => {
+            const storedUserStr = localStorage.getItem('user');
+            if (storedUserStr) {
+                const storedUser = JSON.parse(storedUserStr);
+                setUser(storedUser);
+                
+                // Fetch fresh profile data in background to keep state synced
+                if (storedUser.token) {
+                    try {
+                        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/profile`, {
+                            headers: { Authorization: `Bearer ${storedUser.token}` }
+                        });
+                        const updatedUser = {
+                            ...storedUser,
+                            ...data,
+                            hasFaceRegistered: data.faceEncoding && data.faceEncoding.length > 0
+                        };
+                        console.log('Profile sync complete. Face registered:', updatedUser.hasFaceRegistered);
+                        setUser(updatedUser);
+                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                    } catch (err) {
+                        console.error('Failed to refresh user profile:', err);
+                    }
+                }
+            }
+            setLoading(false);
+        };
+        initAuth();
     }, []);
 
     const login = async (email, password) => {

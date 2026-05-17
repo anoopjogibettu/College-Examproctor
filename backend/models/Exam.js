@@ -4,10 +4,12 @@ const questionSchema = new mongoose.Schema({
     type: { type: String, enum: ['mcq', 'text', 'code'], default: 'mcq' },
     questionText: { type: String, required: true },
     options: { type: [String], default: [] },
-    correctAnswer: { type: String, default: '' }
+    correctAnswer: { type: String, default: '' },
+    marks: { type: Number, default: 1 }
 });
 
 const examSchema = new mongoose.Schema({
+    uid: { type: String, unique: true, sparse: true }, // Institutional UID (EXM-XXXX)
     title: { type: String, required: true },
     scheduledFor: { type: Date, required: true },
     stream: { type: String, enum: ['All', 'Engineering', 'Post Graduation'], default: 'All' },
