@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { Eye, EyeOff } from 'lucide-react';
 
 // MITE Official Engineering Branches (from mite.ac.in)
 const ENGINEERING_BRANCHES = [
@@ -35,6 +36,7 @@ const Register = () => {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { register, sendOtp } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -195,7 +197,24 @@ const Register = () => {
             {/* Password */}
             <div>
               <label style={labelStyle}>Password</label>
-              <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Min. 8 characters" minLength={6} />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  className="input" 
+                  type={showPassword ? "text" : "password"} 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  required 
+                  placeholder="Min. 8 characters" 
+                  minLength={6} 
+                  style={{ paddingRight: '2.75rem' }}
+                />
+                <div 
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </div>
+              </div>
             </div>
 
             {/* Academic Stream */}

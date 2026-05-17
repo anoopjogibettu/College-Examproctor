@@ -83,8 +83,9 @@ router.post('/:id/violation', protect, async (req, res) => {
             snapshotVideo
         });
 
-        // Auto submit if violations reach 4
-        if (attempt.violationsCount >= 4) {
+        // Auto terminate only for fatal violations
+        const fatalViolations = ['tab_switched', 'fullscreen_exit', 'focus_lost', 'screen_stopped'];
+        if (fatalViolations.includes(eventType)) {
             attempt.status = 'terminated';
             attempt.submittedAt = new Date();
             
@@ -92,7 +93,7 @@ router.post('/:id/violation', protect, async (req, res) => {
                 userId: req.user.id,
                 attemptId: attempt._id,
                 eventType: 'exam_terminated',
-                description: 'Exam auto-terminated due to maximum violations'
+                description: `Exam auto-terminated due to fatal violation: ${eventType}`
             });
         }
 
