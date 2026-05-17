@@ -24,7 +24,6 @@ router.get('/logs', protect, moderatorOrAdmin, async (req, res) => {
             { $unwind: { path: '$userId', preserveNullAndEmptyArrays: true } }
         ]).option({ allowDiskUse: true });
         
-        console.log(`[AdminAPI] Fetched ${logs.length} logs`);
         res.json(logs);
     } catch (error) {
         console.error('Logs fetch error:', error.message);
@@ -59,7 +58,6 @@ router.get('/attempts', protect, moderatorOrAdmin, async (req, res) => {
                 return doc;
             });
         }
-        console.log(`[AdminAPI] Fetched ${result.length} attempts`);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
@@ -106,7 +104,7 @@ router.put('/attempts/:id/grade', protect, moderatorOrAdmin, async (req, res) =>
 router.get('/users', protect, moderatorOrAdmin, async (req, res) => {
     try {
         const users = await User.find({ role: { $in: ['student', 'moderator'] } })
-            .select('-password')
+            .select('-password -faceEncoding')
             .sort({ createdAt: -1 });
         
         // Return a mapped version with a boolean flag indicating if a face is registered
@@ -124,7 +122,6 @@ router.get('/users', protect, moderatorOrAdmin, async (req, res) => {
             createdAt: u.createdAt
         }));
 
-        console.log(`[AdminAPI] Fetched ${result.length} users`);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });

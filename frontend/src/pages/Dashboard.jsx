@@ -9,35 +9,44 @@ const Dashboard = () => {
   const [exams, setExams] = useState([]);
   const [myResults, setMyResults] = useState(null);
   const [usn, setUsn] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [faceRegistered, setFaceRegistered] = useState(user?.hasFaceRegistered || false);
   const navigate = useNavigate();
 
-  const faceRegistered = user?.hasFaceRegistered || false;
-
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const headers = { Authorization: `Bearer ${user.token}` };
+    const fetchExams = async () => {
       try {
-        const [examsRes, resultsRes, profileRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/exams`, { headers }),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/attempts/my-results`, { headers }),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/auth/profile`, { headers })
-        ]);
-
-        setExams(examsRes.data);
-        setMyResults(resultsRes.data);
-        setUsn(resultsRes.data.usn || '');
-      } catch (err) {
-        console.error("Dashboard fetch error:", err);
-      } finally {
-        setLoading(false);
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/exams`, {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        setExams(data);
+      } catch (error) {
+        console.error('Failed to fetch exams');
       }
     };
-
-    if (user?.token) {
-      fetchData();
-    }
+    const fetchResults = async () => {
+      try {
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/attempts/my-results`, {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        setMyResults(data);
+        setUsn(data.usn || '');
+      } catch (error) {
+        console.error('Failed to fetch results');
+      }
+    };
+    const verifyBiometrics = async () => {
+      try {
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/profile`, {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        setFaceRegistered(data.faceEncoding && data.faceEncoding.length > 0);
+      } catch (error) {
+        console.error('Failed to verify biometrics status');
+      }
+    };
+    fetchExams();
+    fetchResults();
+    verifyBiometrics();
   }, [user]);
 
   const handleLogout = () => {
@@ -46,10 +55,10 @@ const Dashboard = () => {
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: 'clamp(1rem, 5vw, 3rem) clamp(1rem, 5vw, 2rem)', minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '3rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
 
       {/* HERO HEADER */}
-      <header className="flex justify-between items-center animate-fade-in mobile-stack" style={{ paddingBottom: '2rem', borderBottom: '1px solid var(--border)', gap: '1.5rem' }}>
+      <header className="flex justify-between items-center animate-fade-in" style={{ paddingBottom: '2rem', borderBottom: '1px solid var(--border)' }}>
         <div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: '0.25rem' }}>Welcome back,</p>
           <h1 className="text-gradient" style={{ fontSize: '2.5rem', letterSpacing: '-1px', marginBottom: '0.2rem' }}>{user?.name}</h1>
@@ -126,15 +135,15 @@ const Dashboard = () => {
               const isFuture = new Date() < scheduleDate;
 
               return (
-                <div key={exam._id} className="card animate-fade-in mobile-stack" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem', borderLeft: isFuture ? '4px solid var(--border)' : '4px solid var(--primary)', gap: '1.5rem' }}>
+                <div key={exam._id} className="card glass animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem 2rem', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--surface)', transition: 'transform 0.2s, box-shadow 0.2s' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}>
 
                   <div className="flex gap-6 items-center">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <h3 style={{ fontSize: '1.35rem', margin: 0 }}>{exam.title}</h3>
+                      <h3 style={{ fontSize: '1.35rem', margin: 0, fontWeight: '700', color: 'var(--text-primary)' }}>{exam.title}</h3>
                       <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        <span className="flex items-center gap-1"><Clock size={16} /> {exam.duration} Minutes</span>
+                        <span className="flex items-center gap-1"><Clock size={16} color="var(--primary)" /> {exam.duration} Minutes</span>
                         <span>•</span>
-                        <span>{exam.questions?.length || 0} Questions</span>
+                        <span className="flex items-center gap-1"><BookOpen size={16} color="var(--primary)" /> {exam.questions?.length || 0} Questions</span>
                       </div>
                     </div>
                   </div>
@@ -143,35 +152,37 @@ const Dashboard = () => {
                     {/* Schedule Block */}
                     {isFuture ? (
                       <div className="text-right">
-                        <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Opens At</p>
+                        <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontWeight: '700' }}>Opens At</p>
                         <p className="flex items-center gap-2" style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '1.1rem' }}>
-                          <Calendar size={18} color="var(--primary)" />
+                          <Calendar size={18} color="var(--accent)" />
                           {scheduleDate.toLocaleDateString()} {scheduleDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                     ) : (
-                      <div className={`badge ${exam.hasAttempted ? 'badge-terminated' : 'badge-active'} flex items-center gap-1`} style={{ padding: '0.5rem 1rem' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: exam.hasAttempted ? '#f87171' : '#34d399', display: 'inline-block' }}></span>
-                        {exam.hasAttempted ? 'Attempted' : 'Available Now'}
+                      <div className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--secondary)', padding: '0.5rem 1rem', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--secondary)', display: 'inline-block' }}></span>
+                        Available Now
                       </div>
                     )}
 
                     {/* Action Button */}
-                      <button
-                        className={`btn ${(isFuture || !faceRegistered || exam.hasAttempted) ? '' : 'btn-primary'}`}
-                        style={{
-                          width: '100%',
-                          maxWidth: '240px',
-                          height: '50px',
-                          background: (isFuture || exam.hasAttempted) && faceRegistered ? 'var(--surface)' : undefined,
-                          border: (isFuture || exam.hasAttempted) && faceRegistered ? '1px solid var(--border)' : undefined,
-                          color: (isFuture || exam.hasAttempted) && faceRegistered ? 'var(--text-secondary)' : undefined
-                        }}
-                        disabled={!faceRegistered || isFuture || exam.hasAttempted}
-                        onClick={() => navigate(`/exam/${exam._id}`)}
-                      >
-                        {!faceRegistered ? 'Setup Required' : exam.hasAttempted ? 'Attempt Recorded' : isFuture ? 'Locked' : 'Initialise Exam'}
-                      </button>
+                    <button
+                      className={`btn ${(isFuture || !faceRegistered || exam.hasAttempted) ? '' : 'btn-primary'}`}
+                      style={{
+                        width: '180px',
+                        height: '45px',
+                        borderRadius: '10px',
+                        fontWeight: '600',
+                        fontSize: '0.875rem',
+                        background: (isFuture || exam.hasAttempted) && faceRegistered ? 'var(--surface-hover)' : undefined,
+                        border: (isFuture || exam.hasAttempted) && faceRegistered ? '1px solid var(--border)' : undefined,
+                        color: (isFuture || exam.hasAttempted) && faceRegistered ? 'var(--text-secondary)' : undefined
+                      }}
+                      disabled={!faceRegistered || isFuture || exam.hasAttempted}
+                      onClick={() => navigate(`/exam/${exam._id}`)}
+                    >
+                      {!faceRegistered ? 'Setup Required' : exam.hasAttempted ? 'Attempt Recorded' : isFuture ? 'Locked' : 'Initialize Exam'}
+                    </button>
                   </div>
                 </div>
               );

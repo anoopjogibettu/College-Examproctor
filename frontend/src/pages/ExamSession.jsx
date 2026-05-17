@@ -344,28 +344,33 @@ const ExamSession = () => {
       // Abort gracefully if exam hasn't fully launched
       if (!videoRef.current || !registeredFace || !screenShared) return;
 
-      const detections = await faceapi.detectAllFaces(videoRef.current)
-        .withFaceLandmarks()
-        .withFaceDescriptors();
+      try {
+        const detections = await faceapi.detectAllFaces(videoRef.current)
+          .withFaceLandmarks()
+          .withFaceDescriptors();
 
-      if (detections.length === 0) {
-        recordViolation('no_face', 'No face detected in the frame');
-        return;
-      }
+        if (detections.length === 0) {
+          recordViolation('no_face', 'No face detected. Please adjust your camera or sit properly.');
+          return;
+        }
 
-      if (detections.length > 1) {
-        recordViolation('multiple_faces', 'More than one face detected');
-        return;
-      }
+        if (detections.length > 1) {
+          recordViolation('multiple_faces', 'More than one face detected');
+          return;
+        }
 
-      // 1 Face, Verify it
-      const currentDescriptor = detections[0].descriptor;
-      const distance = faceapi.euclideanDistance(registeredFace, currentDescriptor);
+        // 1 Face, Verify it
+        const currentDescriptor = detections[0].descriptor;
+        const distance = faceapi.euclideanDistance(registeredFace, currentDescriptor);
 
-      if (distance > 0.6) { // Threshold
-        recordViolation('unknown_face', `Face mismatch detected (distance: ${distance.toFixed(2)})`);
-      } else {
-        setStatus('Monitoring Active - Biometrics Verified');
+        if (distance > 0.6) { // Threshold
+          recordViolation('unknown_face', `Face mismatch detected (distance: ${distance.toFixed(2)})`);
+        } else {
+          setStatus('Monitoring Active - Biometrics Verified');
+        }
+      } catch (err) {
+        console.error('Face detection error:', err);
+        setStatus(`Warning: Face detection failed. Please adjust your camera or check lighting.`);
       }
 
     }, 4000); // Check every 4 seconds
@@ -441,6 +446,7 @@ const ExamSession = () => {
       );
       
       setViolations(res.data.violationsCount);
+      setStatus(`Violation recorded: ${description}`);
 
       if (res.data.status === 'terminated') {
         alert('Exam Terminated due to maximum violations exceeded.');
@@ -448,6 +454,7 @@ const ExamSession = () => {
       }
     } catch (err) {
       console.error('Violation record error', err);
+      setStatus(`Error: Failed to log violation (${err.message || 'Unknown error'})`);
     }
   };
 
@@ -560,7 +567,7 @@ const ExamSession = () => {
     <div style={{ minHeight: '100vh', background: 'var(--background)', color: 'var(--text-primary)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       
       {/* HUD: TOP STATUS BAR */}
-      <header className="mobile-stack" style={{ minHeight: '70px', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', position: 'sticky', top: 0, zIndex: 100, gap: '1rem' }}>
+      <header style={{ height: '70px', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 100 }}>
         <div className="flex items-center gap-4">
            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }}></div>
            <div>
@@ -584,7 +591,7 @@ const ExamSession = () => {
         </div>
       </header>
 
-      <main className="exam-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 320px', gap: '2rem', padding: '1rem', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
+      <main style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 320px', gap: '2rem', padding: '2rem', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
         
         {/* LEFT: WORKSPACE */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -604,7 +611,7 @@ const ExamSession = () => {
           )}
 
           {/* QUESTION CARD */}
-          <div className="card animate-fade-in" style={{ padding: 'clamp(1rem, 5vw, 2.5rem)', flex: 1, background: 'var(--surface)', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+          <div className="card animate-fade-in" style={{ padding: '2.5rem 3rem 3rem 3rem', flex: 1, background: 'var(--surface)', position: 'relative', display: 'flex', flexDirection: 'column' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <div style={{ background: 'var(--primary)', color: 'white', padding: '0.5rem 1.5rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '800', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
@@ -694,32 +701,32 @@ const ExamSession = () => {
                    )}
                  </div>
 
-                  {/* BOTTOM ACTIONS */}
-                  <div className="mobile-stack" style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
-                     <button 
-                       className="btn"
-                       disabled={currentQuestionIdx === 0}
-                       onClick={() => setCurrentQuestionIdx(idx => idx - 1)}
-                       style={{ padding: '0.8rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'auto' }}
-                     >
-                       <ChevronLeft size={20} /> Previous
-                     </button>
- 
-                     <div className="mobile-stack" style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', justifyContent: 'flex-end' }}>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                          {Object.keys(answers).length} / {exam.questions?.length} Saved
-                        </span>
-                        {currentQuestionIdx === (exam.questions?.length - 1) ? (
-                          <button onClick={submitExam} className="btn btn-primary" style={{ padding: '0.8rem 2rem', background: 'var(--primary)', fontWeight: '800' }}>
-                            Final Submission
-                          </button>
-                        ) : (
-                          <button onClick={() => setCurrentQuestionIdx(idx => idx + 1)} className="btn btn-primary" style={{ padding: '0.8rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            Next Question <ChevronRight size={20} />
-                          </button>
-                        )}
-                     </div>
-                  </div>
+                 {/* BOTTOM ACTIONS */}
+                 <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <button 
+                      className="btn"
+                      disabled={currentQuestionIdx === 0}
+                      onClick={() => setCurrentQuestionIdx(idx => idx - 1)}
+                      style={{ padding: '0.8rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      <ChevronLeft size={20} /> Previous
+                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                       <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                         Progress: {Object.keys(answers).length} / {exam.questions?.length} Saved
+                       </span>
+                       {currentQuestionIdx === (exam.questions?.length - 1) ? (
+                         <button onClick={submitExam} className="btn btn-primary" style={{ padding: '0.8rem 3rem', background: 'var(--primary)', fontWeight: '800' }}>
+                           Final Submission
+                         </button>
+                       ) : (
+                         <button onClick={() => setCurrentQuestionIdx(idx => idx + 1)} className="btn btn-primary" style={{ padding: '0.8rem 2.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                           Next Question <ChevronRight size={20} />
+                         </button>
+                       )}
+                    </div>
+                 </div>
                </div>
              )}
           </div>

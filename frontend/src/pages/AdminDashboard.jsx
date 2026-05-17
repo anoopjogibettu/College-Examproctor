@@ -2,28 +2,8 @@ import React, { useEffect, useState, useContext, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { AuthContext } from '../context/AuthContext';
-import { LogOut, Activity, AlertCircle, Users, PlusCircle, Trash2, StopCircle, Shield, FileText, Settings, User, Award, Search, Eye, EyeOff, MessageSquare, Bell, Menu } from 'lucide-react';
+import { LogOut, Activity, AlertCircle, Users, PlusCircle, Trash2, StopCircle, Shield, FileText, Settings, User, Award, Search, Eye, EyeOff, MessageSquare, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const ENGINEERING_BRANCHES = [
-  'Aeronautical Engineering',
-  'Computer Science & Engineering',
-  'Artificial Intelligence & Machine Learning',
-  'CSE (IoT & Cyber Security with Blockchain Technology)',
-  'CSE (Artificial Intelligence & Machine Learning)',
-  'Information Science & Engineering',
-  'Electronics & Communication Engineering',
-  'Mechanical Engineering',
-  'Mechatronics',
-  'Robotics and Artificial Intelligence',
-  'Civil Engineering',
-];
-
-const PG_PROGRAMS = [
-  'Master of Computer Applications (MCA)',
-  'Master of Business Administration (MBA)',
-  'Master of Technology (M.Tech) in Computer Science & Engg.',
-];
 
 const AdminDashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -34,8 +14,7 @@ const AdminDashboard = () => {
   const [exams, setExams] = useState([]);
   
   // Tab state
-  // Tab state
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('attempts');
 
   // Video Modal State
   const [playingVideo, setPlayingVideo] = useState(null);
@@ -83,30 +62,41 @@ const AdminDashboard = () => {
   const [examSearch, setExamSearch] = useState('');
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const fetchData = async () => {
     if (!user || !user.token) return;
     setIsSyncing(true);
     const headers = { Authorization: `Bearer ${user.token}` };
     
+    // Fetch each endpoint independently so one failure doesn't block all data
     try {
-      const [logsRes, attemptsRes, studentsRes, examsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/api/admin/logs`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_URL}/api/admin/attempts`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_URL}/api/admin/exams`, { headers })
-      ]);
-
+      const logsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/logs`, { headers });
       setLogs(logsRes.data);
+    } catch (err) {
+      console.error("Failed to fetch logs", err);
+    }
+    
+    try {
+      const attemptsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/attempts`, { headers });
       setAttempts(attemptsRes.data);
+    } catch (err) {
+      console.error("Failed to fetch attempts", err);
+    }
+    
+    try {
+      const studentsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users`, { headers });
       setStudents(studentsRes.data);
+    } catch (err) {
+      console.error("Failed to fetch students", err);
+    }
+    
+    try {
+      const examsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/exams`, { headers });
       setExams(examsRes.data);
     } catch (err) {
-      console.error("Data fetch error:", err);
-    } finally {
-      setIsSyncing(false);
+      console.error("Failed to fetch exams", err);
     }
+    setIsSyncing(false);
   };
 
   useEffect(() => {
@@ -385,28 +375,15 @@ const AdminDashboard = () => {
       {label}
     </button>
   );
+
   const standardStudents = students.filter(s => s.role === 'student');
   const moderators = students.filter(s => s.role === 'moderator');
 
   return (
-    <div style={{ display: 'flex', width: '100%', maxWidth: '1600px', margin: '0 auto', padding: '2rem 4rem', gap: '4rem', minHeight: '100vh', alignItems: 'flex-start' }} className="mobile-dashboard-container">
+    <div style={{ display: 'flex', width: '100%', maxWidth: '1600px', margin: '0 auto', padding: '2rem 4rem', gap: '4rem', minHeight: '100vh', alignItems: 'flex-start' }}>
+      
       {/* SIDEBAR NAVIGATION */}
-      <aside 
-        className={`card glass ${sidebarOpen ? 'sidebar-open' : ''}`}
-        style={{ 
-          width: '280px', 
-          flexShrink: 0, 
-          position: 'sticky', 
-          top: '6rem', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          padding: '1.5rem', 
-          height: 'calc(100vh - 8rem)', 
-          overflowY: 'auto',
-          zIndex: 100,
-          transition: 'transform 0.3s ease'
-        }}
-      >
+      <aside className="card glass" style={{ width: '280px', flexShrink: 0, position: 'sticky', top: '2rem', display: 'flex', flexDirection: 'column', padding: '1.5rem', height: 'calc(100vh - 4rem)', overflowY: 'auto' }}>
         
         <div style={{ marginBottom: '2rem' }}>
           <h2 className="text-gradient flex items-center gap-2 mb-4" style={{ fontSize: '1.25rem' }}>
@@ -443,7 +420,6 @@ const AdminDashboard = () => {
           <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '0.5rem', marginTop: '1rem' }}>
             Monitoring
           </div>
-          <SidebarButton id="overview" icon={Activity} label="Insights Overview" />
           <SidebarButton id="attempts" icon={FileText} label="All Attempts" />
           <SidebarButton id="scores" icon={Award} label="Final Scores" />
           <SidebarButton id="logs" icon={AlertCircle} label="Violation Logs" />
@@ -458,7 +434,6 @@ const AdminDashboard = () => {
               <SidebarButton id="createExam" icon={PlusCircle} label="Create Exam" />
               <SidebarButton id="studentLookup" icon={Search} label="Master Search" />
               <SidebarButton id="roles" icon={User} label="Access Control" />
-              <SidebarButton id="broadcast" icon={Bell} label="Announcements" />
             </>
           )}
         </nav>
@@ -478,89 +453,8 @@ const AdminDashboard = () => {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="card animate-fade-in dashboard-main-content" style={{ flex: 1, minWidth: 0, minHeight: 'calc(100vh - 4rem)', padding: '2.5rem' }}>
+      <main className="card animate-fade-in" style={{ flex: 1, minWidth: 0, minHeight: 'calc(100vh - 4rem)', padding: '2.5rem' }}>
         
-        {/* Mobile Sidebar Toggle */}
-        <div className="mobile-only" style={{ marginBottom: '1.5rem' }}>
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="btn"
-            style={{ background: 'var(--surface)', color: 'var(--primary)', border: '1px solid var(--primary)', justifyContent: 'flex-start' }}
-          >
-            <Menu size={20} /> {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Menu
-          </button>
-        </div>
-        
-        {activeTab === 'overview' && (
-          <div className="animate-fade-in">
-            <h2 className="mb-6" style={{ fontSize: '1.5rem', fontWeight: '700' }}>Platform Insights</h2>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-               <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem', borderLeft: '4px solid var(--primary)' }}>
-                  <div style={{ background: 'rgba(79, 70, 229, 0.1)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <Users color="var(--primary)" size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Total Students</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: '800' }}>{students.length || attempts.length}</div>
-                  </div>
-               </div>
-
-               <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem', borderLeft: '4px solid var(--accent)' }}>
-                  <div style={{ background: 'rgba(244, 129, 32, 0.1)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <Activity color="var(--accent)" size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Active Exams</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: '800' }}>{exams.filter(e => new Date(e.scheduledFor) > new Date()).length}</div>
-                  </div>
-               </div>
-
-               <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem', borderLeft: '4px solid #ef4444' }}>
-                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <AlertCircle color="#ef4444" size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Violations Recorded</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: '800' }}>{logs.length}</div>
-                  </div>
-               </div>
-
-               <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem', borderLeft: '4px solid #10b981' }}>
-                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <Award color="#10b981" size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Submissions</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: '800' }}>{attempts.filter(a => a.status === 'finished').length}</div>
-                  </div>
-               </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-               <div className="card" style={{ padding: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>RECENT EXAM ACTIVITY</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {exams.slice(0, 5).map(e => (
-                      <div key={e._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--background)', borderRadius: '8px' }}>
-                        <span style={{ fontWeight: '600' }}>{e.title}</span>
-                        <span className="badge badge-active">{new Date(e.scheduledFor).toLocaleDateString()}</span>
-                      </div>
-                    ))}
-                  </div>
-               </div>
-               <div className="card" style={{ padding: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>SYSTEM SECURITY STATUS</h3>
-                  <div style={{ textAlign: 'center', padding: '2rem' }}>
-                     <Shield size={48} color="#10b981" style={{ marginBottom: '1rem' }} />
-                     <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10b981' }}>AI Proctoring Active</div>
-                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>All real-time violation monitoring services are operational.</p>
-                  </div>
-               </div>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'attempts' && (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -1059,19 +953,12 @@ const AdminDashboard = () => {
 
                   <div className="grid mt-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                     <div className="form-group m-0">
-                       <label className="form-label" style={{ fontSize: '0.95rem' }}>{editFormData.stream === 'Engineering' ? 'Branch' : 'Programme'}</label>
-                       <select className="input" style={{ padding: '1rem', fontSize: '1.05rem' }} value={editFormData.branch} onChange={e => setEditFormData({...editFormData, branch: e.target.value})}>
-                          <option value="">Select...</option>
-                          {editFormData.stream === 'Engineering' ? (
-                            ENGINEERING_BRANCHES.map(b => <option key={b} value={b}>{b}</option>)
-                          ) : (
-                            PG_PROGRAMS.map(p => <option key={p} value={p}>{p}</option>)
-                          )}
-                       </select>
+                       <label className="form-label" style={{ fontSize: '0.95rem' }}>Branch (Engineering)</label>
+                       <input type="text" className="input" style={{ padding: '1rem', fontSize: '1.05rem' }} value={editFormData.branch} onChange={e => setEditFormData({...editFormData, branch: e.target.value})} placeholder="e.g. Computer Science" />
                     </div>
                     <div className="form-group m-0">
-                       <label className="form-label" style={{ fontSize: '0.95rem' }}>Specialization/Sub-branch</label>
-                       <input type="text" className="input" style={{ padding: '1rem', fontSize: '1.05rem' }} value={editFormData.specialization} onChange={e => setEditFormData({...editFormData, specialization: e.target.value})} placeholder="e.g. Data Science" />
+                       <label className="form-label" style={{ fontSize: '0.95rem' }}>Specialization / PG Program</label>
+                       <input type="text" className="input" style={{ padding: '1rem', fontSize: '1.05rem' }} value={editFormData.specialization} onChange={e => setEditFormData({...editFormData, specialization: e.target.value})} placeholder="e.g. MCA" />
                     </div>
                   </div>
                 </div>
@@ -1120,80 +1007,41 @@ const AdminDashboard = () => {
               <div style={{ background: 'rgba(244, 129, 32, 0.1)', padding: '0.5rem', borderRadius: '8px' }}>
                 <Bell size={24} color="var(--accent)" />
               </div>
-              <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>Broadcast Announcements</h2>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}>Send targeted announcements to specific student cohorts</p>
-              </div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Broadcast News & Alerts</h2>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem', alignItems: 'start' }}>
               {/* Compose Section */}
               <div className="card" style={{ padding: '2rem' }}>
-                <h3 style={{ fontSize: '1rem', marginBottom: '1.5rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)' }}>Compose New Announcement</h3>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', fontWeight: '700' }}>Compose New Announcement</h3>
                 <form onSubmit={handlePostAnnouncement} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                    <div className="form-group">
                      <label className="form-label">Announcement Title</label>
-                     <input type="text" className="input" placeholder="e.g., MCA Semester End Exams — Schedule Released" value={annTitle} onChange={e => setAnnTitle(e.target.value)} required />
+                     <input type="text" className="input" placeholder="e.g., MCA Semester End Exams" value={annTitle} onChange={e => setAnnTitle(e.target.value)} required />
                    </div>
-
                    <div className="form-group">
-                     <label className="form-label">Target Stream</label>
-                     <select className="input" value={annStream} onChange={e => { setAnnStream(e.target.value); setAnnBranch('All'); }}>
-                        <option value="All">All Streams</option>
-                        <option value="Engineering">Engineering (B.E.)</option>
-                        <option value="Post Graduation">Post Graduation</option>
-                     </select>
-                   </div>
-
-                   {annStream !== 'All' && (
+                     <label className="form-label">Target Audience</label>
                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                       <div className="form-group" style={{ margin: 0 }}>
-                         <label className="form-label">{annStream === 'Engineering' ? 'Target Branch' : 'Target Programme'}</label>
-                         <select className="input" value={annBranch} onChange={e => setAnnBranch(e.target.value)}>
-                           <option value="All">All {annStream === 'Engineering' ? 'Branches' : 'Programmes'}</option>
-                           {annStream === 'Engineering' ? (
-                             <>
-                               <option>Aeronautical Engineering</option>
-                               <option>Computer Science &amp; Engineering</option>
-                               <option>Artificial Intelligence &amp; Machine Learning</option>
-                               <option>CSE (IoT &amp; Cyber Security with Blockchain Technology)</option>
-                               <option>CSE (Artificial Intelligence &amp; Machine Learning)</option>
-                               <option>Information Science &amp; Engineering</option>
-                               <option>Electronics &amp; Communication Engineering</option>
-                               <option>Mechanical Engineering</option>
-                               <option>Mechatronics</option>
-                               <option>Robotics and Artificial Intelligence</option>
-                               <option>Civil Engineering</option>
-                             </>
-                           ) : (
-                             <>
-                               <option>Master of Computer Applications (MCA)</option>
-                               <option>Master of Business Administration (MBA)</option>
-                               <option>Master of Technology (M.Tech) in Computer Science &amp; Engg.</option>
-                             </>
-                           )}
-                         </select>
-                       </div>
-                       <div className="form-group" style={{ margin: 0 }}>
-                         <label className="form-label">Target Year</label>
-                         <select className="input" value={annYear} onChange={e => setAnnYear(parseInt(e.target.value))}>
+                        <select className="input" value={annStream} onChange={e => setAnnStream(e.target.value)}>
+                           <option value="All">All Streams</option>
+                           <option value="Engineering">Engineering</option>
+                           <option value="Post Graduation">Post Graduation</option>
+                        </select>
+                        <select className="input" value={annYear} onChange={e => setAnnYear(parseInt(e.target.value))}>
                            <option value={0}>All Years</option>
                            <option value={1}>1st Year</option>
                            <option value={2}>2nd Year</option>
-                           {annStream === 'Engineering' && <option value={3}>3rd Year</option>}
-                           {annStream === 'Engineering' && <option value={4}>4th Year</option>}
-                         </select>
-                       </div>
+                           <option value={3}>3rd Year</option>
+                           <option value={4}>4th Year</option>
+                        </select>
                      </div>
-                   )}
-
-                   <div className="form-group">
-                     <label className="form-label">Message Content</label>
-                     <textarea className="input" style={{ minHeight: '150px', resize: 'vertical' }} placeholder="Type your announcement message here..." value={annContent} onChange={e => setAnnContent(e.target.value)} required></textarea>
+                     <input type="text" className="input mt-2" placeholder="Branch (e.g., MCA, CSE) or 'All'" value={annBranch} onChange={e => setAnnBranch(e.target.value)} />
                    </div>
-                   <button type="submit" className="btn btn-primary w-full" style={{ padding: '0.85rem', fontSize: '1rem', fontWeight: '700', letterSpacing: '0.5px' }}>
-                     📢 Broadcast to Students
-                   </button>
+                   <div className="form-group">
+                     <label className="form-label">Detailed Content</label>
+                     <textarea className="input" style={{ minHeight: '150px', resize: 'vertical' }} placeholder="Type your message here..." value={annContent} onChange={e => setAnnContent(e.target.value)} required></textarea>
+                   </div>
+                   <button type="submit" className="btn btn-primary w-full">Broadcast to Students</button>
                 </form>
               </div>
 
