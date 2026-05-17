@@ -34,7 +34,29 @@ router.post('/send-otp', async (req, res) => {
         await sendEmail({
             email,
             subject: 'MITE Exam Portal - Registration OTP',
-            message: `Your OTP for account registration is: ${otp}\n\nThis code is valid for 10 minutes.\n\nAccess the portal here: https://collageexamportal.vercel.app/`
+            message: `Your OTP for account registration is: ${otp}\n\nThis code is valid for 10 minutes.`,
+            html: `
+<div style="background-color: #f4f6f9; padding: 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1a1a2e;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="background-color: #09529B; padding: 20px; text-align: center; color: #ffffff;">
+            <h1 style="margin: 0; font-size: 24px;">MITE Exam Portal</h1>
+        </div>
+        <div style="padding: 30px;">
+            <p style="font-size: 16px; line-height: 1.6;">Hello,</p>
+            <p style="font-size: 16px; line-height: 1.6;">Your OTP for account registration is:</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <span style="font-size: 32px; font-weight: bold; color: #F48120; letter-spacing: 5px;">${otp}</span>
+            </div>
+            <p style="font-size: 14px; color: #4a5568;">This code is valid for 10 minutes.</p>
+            <hr style="border: 0; border-top: 1px solid #dde3ec; margin: 20px 0;">
+            <p style="font-size: 14px; color: #4a5568;">If you did not request this, please ignore this email.</p>
+        </div>
+        <div style="background-color: #eef2f7; padding: 15px; text-align: center; font-size: 12px; color: #4a5568;">
+            © 2026 MITE Exam Portal. All rights reserved.
+        </div>
+    </div>
+</div>
+`
         });
 
         res.json({ message: 'OTP sent to email.' });
@@ -212,13 +234,36 @@ router.post('/forgot-password', async (req, res) => {
             { upsert: true, new: true }
         );
 
-        const message = `You are receiving this email because you (or someone else) has requested a password reset.\n\nYour Password Reset OTP is: ${resetOtp}\n\nThis code is valid for 10 minutes.\n\nAccess the portal to continue: https://collageexamportal.vercel.app/\n\nIf you did not request this, please ignore this email.`;
+        const message = `You are receiving this email because you (or someone else) has requested a password reset.\n\nYour Password Reset OTP is: ${resetOtp}\n\nThis code is valid for 10 minutes.`;
 
         try {
             await sendEmail({
                 email: user.email,
                 subject: 'ProctorAI - Password Reset OTP',
-                message
+                message,
+                html: `
+<div style="background-color: #f4f6f9; padding: 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1a1a2e;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="background-color: #09529B; padding: 20px; text-align: center; color: #ffffff;">
+            <h1 style="margin: 0; font-size: 24px;">ProctorAI</h1>
+        </div>
+        <div style="padding: 30px;">
+            <p style="font-size: 16px; line-height: 1.6;">Hello,</p>
+            <p style="font-size: 16px; line-height: 1.6;">You are receiving this email because you (or someone else) has requested a password reset.</p>
+            <p style="font-size: 16px; line-height: 1.6;">Your Password Reset OTP is:</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <span style="font-size: 32px; font-weight: bold; color: #F48120; letter-spacing: 5px;">${resetOtp}</span>
+            </div>
+            <p style="font-size: 14px; color: #4a5568;">This code is valid for 10 minutes.</p>
+            <hr style="border: 0; border-top: 1px solid #dde3ec; margin: 20px 0;">
+            <p style="font-size: 14px; color: #4a5568;">If you did not request this, please ignore this email.</p>
+        </div>
+        <div style="background-color: #eef2f7; padding: 15px; text-align: center; font-size: 12px; color: #4a5568;">
+            © 2026 ProctorAI. All rights reserved.
+        </div>
+    </div>
+</div>
+`
             });
 
             res.status(200).json({ message: 'Reset OTP sent to email' });
