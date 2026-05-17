@@ -449,7 +449,7 @@ const ExamSession = () => {
       setStatus(`Violation recorded: ${description}`);
 
       if (res.data.status === 'terminated') {
-        alert('Exam Terminated due to maximum violations exceeded.');
+        alert('Exam Terminated due to a critical violation.');
         navigate('/');
       }
     } catch (err) {

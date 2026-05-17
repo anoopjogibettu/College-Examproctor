@@ -129,59 +129,75 @@ const Dashboard = () => {
             Active Assessments
           </h2>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
             {exams.filter(e => !e.hasAttempted).map(exam => {
               const scheduleDate = new Date(exam.scheduledFor);
               const isFuture = new Date() < scheduleDate;
 
               return (
-                <div key={exam._id} className="card glass animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem 2rem', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--surface)', transition: 'transform 0.2s, box-shadow 0.2s' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}>
+                <div key={exam._id} className="card glass animate-fade-in" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '2rem', borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--surface)', transition: 'transform 0.3s, box-shadow 0.3s', position: 'relative', overflow: 'hidden' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.1)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}>
+                  
+                  {/* Decorative Gradient Background */}
+                  <div style={{ position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%', background: 'radial-gradient(circle, rgba(9, 82, 155, 0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-                  <div className="flex gap-6 items-center">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <h3 style={{ fontSize: '1.35rem', margin: 0, fontWeight: '700', color: 'var(--text-primary)' }}>{exam.title}</h3>
-                      <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        <span className="flex items-center gap-1"><Clock size={16} color="var(--primary)" /> {exam.duration} Minutes</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1"><BookOpen size={16} color="var(--primary)" /> {exam.questions?.length || 0} Questions</span>
+                  <div>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', position: 'relative', zIndex: 1 }}>
+                      <div style={{ background: 'rgba(9, 82, 155, 0.1)', color: 'var(--primary)', padding: '0.6rem', borderRadius: '12px' }}>
+                        <BookOpen size={22} />
                       </div>
+                      {isFuture ? (
+                        <div className="badge" style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '700' }}>
+                          UPCOMING
+                        </div>
+                      ) : (
+                        <div className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: '700' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--secondary)', display: 'inline-block' }}></span>
+                          LIVE
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Title */}
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem', lineHeight: '1.3', position: 'relative', zIndex: 1 }}>{exam.title}</h3>
+                    
+                    {/* Meta Info */}
+                    <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2rem', position: 'relative', zIndex: 1 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={14} color="var(--primary)" /> {exam.duration}m</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Award size={14} color="var(--primary)" /> {exam.questions?.length || 0} Questions</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6">
-                    {/* Schedule Block */}
+                  {/* Bottom Section */}
+                  <div style={{ position: 'relative', zIndex: 1 }}>
                     {isFuture ? (
-                      <div className="text-right">
-                        <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontWeight: '700' }}>Opens At</p>
-                        <p className="flex items-center gap-2" style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '1.1rem' }}>
-                          <Calendar size={18} color="var(--accent)" />
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontWeight: '700' }}>Starts At</p>
+                        <p style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.95rem' }}>
                           {scheduleDate.toLocaleDateString()} {scheduleDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                     ) : (
-                      <div className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--secondary)', padding: '0.5rem 1rem', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--secondary)', display: 'inline-block' }}></span>
-                        Available Now
-                      </div>
+                      <div style={{ marginBottom: '1.5rem', height: '36px' }}>{/* Spacer */}</div>
                     )}
 
-                    {/* Action Button */}
                     <button
                       className={`btn ${(isFuture || !faceRegistered || exam.hasAttempted) ? '' : 'btn-primary'}`}
                       style={{
-                        width: '180px',
+                        width: '100%',
                         height: '45px',
-                        borderRadius: '10px',
+                        borderRadius: '12px',
                         fontWeight: '600',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         background: (isFuture || exam.hasAttempted) && faceRegistered ? 'var(--surface-hover)' : undefined,
                         border: (isFuture || exam.hasAttempted) && faceRegistered ? '1px solid var(--border)' : undefined,
-                        color: (isFuture || exam.hasAttempted) && faceRegistered ? 'var(--text-secondary)' : undefined
+                        color: (isFuture || exam.hasAttempted) && faceRegistered ? 'var(--text-secondary)' : undefined,
+                        justifyContent: 'center'
                       }}
                       disabled={!faceRegistered || isFuture || exam.hasAttempted}
                       onClick={() => navigate(`/exam/${exam._id}`)}
                     >
-                      {!faceRegistered ? 'Setup Required' : exam.hasAttempted ? 'Attempt Recorded' : isFuture ? 'Locked' : 'Initialize Exam'}
+                      {!faceRegistered ? 'Setup Required' : exam.hasAttempted ? 'Attempt Recorded' : isFuture ? 'Locked' : 'Start Assessment'}
                     </button>
                   </div>
                 </div>
@@ -189,7 +205,7 @@ const Dashboard = () => {
             })}
 
             {exams.filter(e => !e.hasAttempted).length === 0 && (
-              <div className="card" style={{ padding: '4rem 2rem', textAlign: 'center', background: 'transparent', border: '1px dashed var(--border)' }}>
+              <div className="card" style={{ gridColumn: '1 / -1', padding: '4rem 2rem', textAlign: 'center', background: 'transparent', border: '1px dashed var(--border)', borderRadius: '16px' }}>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>There are currently no active assessments mapped to your stream.</p>
               </div>
             )}
