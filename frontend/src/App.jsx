@@ -9,11 +9,11 @@ import Dashboard from './pages/Dashboard';
 import FaceSetup from './pages/FaceSetup';
 import ExamSession from './pages/ExamSession';
 import AdminDashboard from './pages/AdminDashboard';
-import ModeratorDashboard from './pages/ModeratorDashboard';
+
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import Profile from './pages/Profile';
-import Results from './pages/Results';
+
+
 import { Link } from 'react-router-dom';
 
 const PrivateRoute = ({ children, roleRequired }) => {
@@ -62,16 +62,8 @@ const MITENavbar = () => {
         </div>
       </div>
 
-      {/* Right Cluster: Student Links + Theme Toggle */}
+      {/* Right Cluster: Theme Toggle only */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-        {/* Student Specific Links - Hidden from Admin/Mod */}
-        {user && user.role === 'student' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <Link to="/" style={{ color: 'white', textDecoration: 'none', fontSize: '0.9rem', fontWeight: '600', opacity: 0.85, transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.85}>Exams</Link>
-            <Link to="/results" style={{ color: 'white', textDecoration: 'none', fontSize: '0.9rem', fontWeight: '600', opacity: 0.85, transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.85}>Results</Link>
-            <Link to="/profile" style={{ color: 'white', textDecoration: 'none', fontSize: '0.9rem', fontWeight: '600', opacity: 0.85, transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.85}>Profile</Link>
-          </div>
-        )}
 
         <button
           onClick={toggleTheme}
@@ -107,12 +99,12 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-      <Route path="/results" element={<PrivateRoute><Results /></PrivateRoute>} />
-      <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+
+
       <Route path="/face-setup" element={<PrivateRoute><FaceSetup /></PrivateRoute>} />
       <Route path="/exam/:id" element={<PrivateRoute><ExamSession /></PrivateRoute>} />
       <Route path="/admin" element={<PrivateRoute roleRequired="admin"><AdminDashboard /></PrivateRoute>} />
-      <Route path="/moderator" element={<PrivateRoute roleRequired="moderator"><ModeratorDashboard /></PrivateRoute>} />
+
     </Routes>
   );
 };

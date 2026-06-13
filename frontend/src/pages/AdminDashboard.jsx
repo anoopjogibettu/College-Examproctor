@@ -21,8 +21,9 @@ const AdminDashboard = () => {
 
   // Create Exam state
   const [examTitle, setExamTitle] = useState('');
-  const [examDuration, setExamDuration] = useState(10);
+  const [examDuration, setExamDuration] = useState('');
   const [scheduledFor, setScheduledFor] = useState('');
+  const [examEndTime, setExamEndTime] = useState('');
   const [examStream, setExamStream] = useState('All');
   const [examTargetBranch, setExamTargetBranch] = useState('All');
   const [examTargetYear, setExamTargetYear] = useState(0);
@@ -42,7 +43,7 @@ const AdminDashboard = () => {
 
   // Role Assignment state
   const [targetUid, setTargetUid] = useState('');
-  const [targetRole, setTargetRole] = useState('moderator');
+  const [targetRole, setTargetRole] = useState('student');
 
   // Master Student Search & Edit State
   const [searchUid, setSearchUid] = useState('');
@@ -60,6 +61,10 @@ const AdminDashboard = () => {
   const [recentAnnouncements, setRecentAnnouncements] = useState([]);
   const [uidSearch, setUidSearch] = useState('');
   const [examSearch, setExamSearch] = useState('');
+  const [studentNameFilter, setStudentNameFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('All');
+  const [streamFilter, setStreamFilter] = useState('All');
+  const [yearFilter, setYearFilter] = useState(0);
 
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -143,19 +148,21 @@ const AdminDashboard = () => {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/exams/create`, 
         { 
           title: examTitle, 
-          duration: examDuration, 
-          questions, 
+          duration: parseInt(examDuration), 
           scheduledFor, 
+          endTime: examEndTime,
           stream: examStream,
           targetBranch: examTargetBranch,
-          targetYear: examTargetYear
+          targetYear: examTargetYear,
+          questions
         },
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
       alert('Exam created successfully!');
       setExamTitle('');
-      setExamDuration(10);
+      setExamDuration('');
       setScheduledFor('');
+      setExamEndTime('');
       setExamStream('All');
       setExamTargetBranch('All');
       setExamTargetYear(0);
@@ -289,6 +296,19 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteAnnouncement = async (annId) => {
+    if (!window.confirm('Are you sure you want to permanently delete this announcement? Students will no longer see it.')) return;
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/announcements/${annId}`, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      setRecentAnnouncements(prev => prev.filter(a => a._id !== annId));
+    } catch (err) {
+      console.error('Failed to delete announcement', err);
+      alert('Failed to delete announcement.');
+    }
+  };
+
   const fetchAnnouncements = async () => {
     try {
       const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/announcements/my`, {
@@ -339,121 +359,121 @@ const AdminDashboard = () => {
     }
   };
 
+  // Matches student Dashboard NavItem style
   const SidebarButton = ({ id, icon: Icon, label }) => (
-    <button
+    <div
       onClick={() => setActiveTab(id)}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.875rem 1rem',
-        borderRadius: '8px',
-        border: 'none',
-        background: activeTab === id ? 'rgba(79, 70, 229, 0.15)' : 'transparent',
+        display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+        borderRadius: '12px', cursor: 'pointer', transition: 'background 0.2s',
+        fontWeight: activeTab === id ? '700' : '600',
+        background: activeTab === id ? 'rgba(9, 82, 155, 0.1)' : 'transparent',
         color: activeTab === id ? 'var(--primary)' : 'var(--text-secondary)',
-        cursor: 'pointer',
-        fontSize: '0.95rem',
-        fontWeight: activeTab === id ? '600' : '500',
-        transition: 'all 0.2s',
-        width: '100%',
-        textAlign: 'left'
+        userSelect: 'none'
       }}
-      onMouseEnter={(e) => {
-        if(activeTab !== id) {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-          e.currentTarget.style.color = 'var(--text-primary)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if(activeTab !== id) {
-          e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = 'var(--text-secondary)';
-        }
-      }}
+      onMouseEnter={e => { if (activeTab !== id) e.currentTarget.style.background = 'var(--surface-hover)'; }}
+      onMouseLeave={e => { if (activeTab !== id) e.currentTarget.style.background = 'transparent'; }}
     >
-      <Icon size={18} />
-      {label}
-    </button>
+      <Icon size={20} />
+      <span>{label}</span>
+    </div>
   );
 
   const standardStudents = students.filter(s => s.role === 'student');
-  const moderators = students.filter(s => s.role === 'moderator');
 
   return (
-    <div style={{ display: 'flex', width: '100%', maxWidth: '1600px', margin: '0 auto', padding: '2rem 4rem', gap: '4rem', minHeight: '100vh', alignItems: 'flex-start' }}>
-      
-      {/* SIDEBAR NAVIGATION */}
-      <aside className="card glass" style={{ width: '280px', flexShrink: 0, position: 'sticky', top: '2rem', display: 'flex', flexDirection: 'column', padding: '1.5rem', height: 'calc(100vh - 4rem)', overflowY: 'auto' }}>
-        
-        <div style={{ marginBottom: '2rem' }}>
-          <h2 className="text-gradient flex items-center gap-2 mb-4" style={{ fontSize: '1.25rem' }}>
-            <Activity size={24} /> {user?.role === 'admin' ? 'Admin Panel' : 'Moderator'}
-          </h2>
-          <div style={{ background: 'var(--background)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)', position: 'relative' }}>
-             <button 
-               onClick={fetchData}
-               disabled={isSyncing}
-               style={{ 
-                 position: 'absolute', top: '0.5rem', right: '0.5rem', 
-                 background: 'transparent', border: 'none', color: 'var(--primary)', 
-                 cursor: 'pointer', opacity: isSyncing ? 0.5 : 1 
-               }}
-               title="Refresh Data"
-             >
-               <Activity size={14} className={isSyncing ? 'animate-spin' : ''} />
-             </button>
-             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Welcome back,</p>
-             <p style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{user?.name}</p>
-             <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-               <Shield size={14} color="var(--primary)" />
-               <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', letterSpacing: '1px', color: 'var(--primary)' }}>{user?.uid || 'LEGACY'}</span>
-             </div>
-             {(user?.stream || user?.specialization) && (
-               <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                 {user?.stream} {user?.specialization ? `• ${user?.specialization}` : ''}
-               </div>
-             )}
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--background)' }}>
+
+      {/* ── SIDEBAR ── matches student Dashboard */}
+      <aside style={{
+        width: '260px', backgroundColor: 'var(--surface)', padding: '2rem 1.5rem',
+        display: 'flex', flexDirection: 'column', gap: '2rem',
+        borderRight: '1px solid var(--border)', flexShrink: 0,
+        position: 'sticky', top: 0, height: '100vh', overflowY: 'auto'
+      }}>
+
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingLeft: '0.5rem' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Shield size={18} color="white" />
+          </div>
+          <div>
+            <span style={{ fontSize: '1.1rem', fontWeight: '800', letterSpacing: '-0.5px', display: 'block' }}>ProctorAI</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Admin Panel</span>
           </div>
         </div>
 
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '0.5rem', marginTop: '1rem' }}>
+        {/* Nav sections */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
+          <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--text-secondary)', fontWeight: '700', padding: '0 0.5rem', marginBottom: '0.25rem', marginTop: '0.5rem' }}>
             Monitoring
           </div>
           <SidebarButton id="attempts" icon={FileText} label="All Attempts" />
           <SidebarButton id="scores" icon={Award} label="Final Scores" />
           <SidebarButton id="logs" icon={AlertCircle} label="Violation Logs" />
           <SidebarButton id="students" icon={Users} label="Student List" />
-          
+
           {user?.role === 'admin' && (
             <>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '0.5rem', marginTop: '1.5rem' }}>
+              <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--text-secondary)', fontWeight: '700', padding: '0 0.5rem', marginBottom: '0.25rem', marginTop: '1.25rem' }}>
                 Management
               </div>
               <SidebarButton id="manageExams" icon={Settings} label="Manage Exams" />
               <SidebarButton id="createExam" icon={PlusCircle} label="Create Exam" />
               <SidebarButton id="studentLookup" icon={Search} label="Master Search" />
               <SidebarButton id="roles" icon={User} label="Access Control" />
+              <SidebarButton id="broadcast" icon={Bell} label="Announcements" />
             </>
           )}
         </nav>
 
-        <button 
+        {/* Logout */}
+        <div
           onClick={handleLogout}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', 
-            background: 'transparent', color: 'var(--text-secondary)', border: 'none',
-            cursor: 'pointer', transition: 'color 0.2s', marginTop: 'auto', borderRadius: '8px'
-          }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderRadius: '12px', color: 'var(--text-secondary)', fontWeight: '600', cursor: 'pointer', transition: 'background 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
-          <LogOut size={16} /> Logout out of system
-        </button>
+          <LogOut size={20} />
+          <span>Disconnect</span>
+        </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="card animate-fade-in" style={{ flex: 1, minWidth: 0, minHeight: 'calc(100vh - 4rem)', padding: '2.5rem' }}>
+      {/* ── MAIN ── */}
+      <main style={{ flex: 1, padding: '2rem 3rem', display: 'flex', flexDirection: 'column', gap: '2rem', overflowY: 'auto', minWidth: 0 }}>
+
+        {/* TOP HEADER BAR */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ position: 'relative', width: '280px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            <input type="text" placeholder="Search students, exams..." className="input" style={{ paddingLeft: '2.5rem', borderRadius: '999px', background: 'var(--surface)', border: 'none', boxShadow: 'var(--shadow-sm)', fontSize: '0.85rem' }} disabled />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            {/* Sync button */}
+            <button
+              onClick={fetchData}
+              disabled={isSyncing}
+              title="Refresh all data"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s', opacity: isSyncing ? 0.5 : 1 }}
+            >
+              <Activity size={16} color="var(--primary)" style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
+            </button>
+            {/* Admin info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)', margin: 0 }}>{user?.name}</p>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.3rem' }}>
+                  <Shield size={10} /> {user?.uid || 'ADMIN'}
+                </p>
+              </div>
+              <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', flexShrink: 0 }}>
+                {user?.name?.charAt(0) || 'A'}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* TAB CONTENT */}
         
         {activeTab === 'attempts' && (
           <div>
@@ -791,92 +811,159 @@ const AdminDashboard = () => {
 
         {activeTab === 'students' && (
           <div>
-            {/* MODERATORS TABLE */}
-            <div className="flex items-center justify-between mb-4">
-               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'var(--primary)' }}>Moderation Staff</h2>
-               <div className="badge" style={{ background: 'rgba(79, 70, 229, 0.1)', color: 'var(--primary)' }}>{moderators.length} Active</div>
-            </div>
-            <div className="w-full mb-8" style={{ overflowX: 'auto' }}>
-              <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-                <thead style={{ background: 'var(--background)' }}>
-                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    <th className="p-3" style={{ color: 'var(--text-secondary)'}}>ID & Name</th>
-                    <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Focus / Track</th>
-                    <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Biometrics</th>
-                    <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Promoted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {moderators.map(mod => (
-                    <tr key={mod._id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td className="p-3 border-l-2" style={{ borderLeftColor: 'var(--primary)' }}>
-                        <div className="font-medium" style={{ fontSize: '1.05rem' }}>{mod.name}</div>
-                        {mod.usn && <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '600', marginBottom: '0.2rem' }}>USN: {mod.usn}</div>}
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="badge" style={{ background: 'var(--background)', color: 'var(--text-secondary)', fontFamily: 'monospace', padding: '0.1rem 0.4rem' }}>{mod.uid || 'LEGACY'}</span>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{mod.email}</span>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <div style={{ fontWeight: '500' }}>{mod.stream}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold' }}>{mod.specialization || 'General'}</div>
-                      </td>
-                      <td className="p-3">
-                        {mod.hasFaceRegistered 
-                          ? <span className="badge badge-active" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>Configured</span> 
-                          : <span className="badge badge-terminated" style={{ background: 'var(--background)', color: 'var(--text-secondary)' }}>Pending Setup</span>}
-                      </td>
-                      <td className="p-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        {new Date(mod.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                  {moderators.length === 0 && <tr><td colSpan="3" className="p-8 text-center text-sm" style={{color: 'var(--text-secondary)'}}>No moderators found.</td></tr>}
-                </tbody>
-              </table>
+
+            {/* Page header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ background: 'rgba(9,82,155,0.1)', padding: '0.65rem', borderRadius: '10px' }}>
+                <Users size={22} color="var(--primary)" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>Student List</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                  {standardStudents.filter(s =>
+                    (studentNameFilter === '' || s.name?.toLowerCase().includes(studentNameFilter.toLowerCase()) || s.email?.toLowerCase().includes(studentNameFilter.toLowerCase())) &&
+                    (branchFilter === 'All' || s.branch === branchFilter) &&
+                    (streamFilter === 'All' || s.stream === streamFilter) &&
+                    (yearFilter === 0 || s.year === yearFilter)
+                  ).length} of {standardStudents.length} students
+                </p>
+              </div>
             </div>
 
-            {/* STUDENTS TABLE */}
-            <div className="flex items-center justify-between mb-4 mt-8 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
-               <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>Standard Students</h2>
-               <div className="badge badge-active">{standardStudents.length} Total</div>
+            {/* Filter bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px 180px 150px auto', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'center' }}>
+              {/* Name / email search */}
+              <div style={{ position: 'relative' }}>
+                <Search size={15} style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={studentNameFilter}
+                  onChange={e => setStudentNameFilter(e.target.value)}
+                  className="input"
+                  style={{ paddingLeft: '2.4rem', borderRadius: '999px', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              {/* Branch */}
+              <select
+                className="input"
+                value={branchFilter}
+                onChange={e => setBranchFilter(e.target.value)}
+                style={{ fontSize: '0.85rem', padding: '0.6rem 0.9rem', borderRadius: '999px' }}
+              >
+                <option value="All">All Branches</option>
+                <option value="Computer Science">Computer Science (CSE)</option>
+                <option value="Information Science">Information Science (ISE)</option>
+                <option value="Electronics & Communication">ECE</option>
+                <option value="Electrical & Electronics">EEE</option>
+                <option value="Mechanical">Mechanical (ME)</option>
+                <option value="Civil">Civil (CE)</option>
+                <option value="Artificial Intelligence & ML">AIML</option>
+                <option value="Data Science">Data Science</option>
+                <option value="Biotechnology">Biotechnology</option>
+                <option value="Chemical">Chemical Engineering</option>
+              </select>
+
+              {/* Stream */}
+              <select
+                className="input"
+                value={streamFilter}
+                onChange={e => setStreamFilter(e.target.value)}
+                style={{ fontSize: '0.85rem', padding: '0.6rem 0.9rem', borderRadius: '999px' }}
+              >
+                <option value="All">All Streams</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Post Graduation">Post Graduation</option>
+              </select>
+
+              {/* Year */}
+              <select
+                className="input"
+                value={yearFilter}
+                onChange={e => setYearFilter(parseInt(e.target.value))}
+                style={{ fontSize: '0.85rem', padding: '0.6rem 0.9rem', borderRadius: '999px' }}
+              >
+                <option value={0}>All Years</option>
+                <option value={1}>1st Year</option>
+                <option value={2}>2nd Year</option>
+                <option value={3}>3rd Year</option>
+                <option value={4}>4th Year</option>
+              </select>
+
+              {/* Clear filters */}
+              {(studentNameFilter || branchFilter !== 'All' || streamFilter !== 'All' || yearFilter !== 0) && (
+                <button
+                  onClick={() => { setStudentNameFilter(''); setBranchFilter('All'); setStreamFilter('All'); setYearFilter(0); }}
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '999px', padding: '0.55rem 1rem', fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
+                >
+                  ✕ Clear
+                </button>
+              )}
             </div>
+
+            {/* Table */}
             <div className="w-full" style={{ overflowX: 'auto' }}>
               <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
                 <thead style={{ background: 'var(--background)' }}>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    <th className="p-3" style={{ color: 'var(--text-secondary)'}}>ID & Name</th>
-                    <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Focus / Track</th>
-                    <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Biometrics</th>
-                    <th className="p-3" style={{ color: 'var(--text-secondary)'}}>Joined</th>
+                    <th className="p-3" style={{ color: 'var(--text-secondary)' }}>ID & Name</th>
+                    <th className="p-3" style={{ color: 'var(--text-secondary)' }}>Branch / Stream</th>
+                    <th className="p-3" style={{ color: 'var(--text-secondary)' }}>Year</th>
+                    <th className="p-3" style={{ color: 'var(--text-secondary)' }}>Biometrics</th>
+                    <th className="p-3" style={{ color: 'var(--text-secondary)' }}>Joined</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {standardStudents.map(student => (
-                    <tr key={student._id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  {standardStudents
+                    .filter(s =>
+                      (studentNameFilter === '' || s.name?.toLowerCase().includes(studentNameFilter.toLowerCase()) || s.email?.toLowerCase().includes(studentNameFilter.toLowerCase())) &&
+                      (branchFilter === 'All' || s.branch === branchFilter) &&
+                      (streamFilter === 'All' || s.stream === streamFilter) &&
+                      (yearFilter === 0 || s.year === yearFilter)
+                    )
+                    .map(student => (
+                    <tr key={student._id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
                       <td className="p-3">
-                        <div className="font-medium" style={{ fontSize: '1.05rem' }}>{student.name}</div>
-                        {student.usn && <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '600', marginBottom: '0.2rem' }}>USN: {student.usn}</div>}
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="badge" style={{ background: 'var(--background)', color: 'var(--text-secondary)', fontFamily: 'monospace', padding: '0.1rem 0.4rem' }}>{student.uid || 'LEGACY'}</span>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{student.email}</span>
+                        <div className="font-medium" style={{ fontSize: '1rem' }}>{student.name}</div>
+                        {student.usn && <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: '600', marginBottom: '0.2rem' }}>USN: {student.usn}</div>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
+                          <span className="badge" style={{ background: 'var(--background)', color: 'var(--text-secondary)', fontFamily: 'monospace', padding: '0.1rem 0.4rem', fontSize: '0.72rem' }}>{student.uid || 'LEGACY'}</span>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{student.email}</span>
                         </div>
                       </td>
                       <td className="p-3">
-                        <div style={{ fontWeight: '500' }}>{student.stream}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold' }}>{student.specialization || 'General'}</div>
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{student.branch || '—'}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>{student.stream}{student.specialization ? ` · ${student.specialization}` : ''}</div>
                       </td>
                       <td className="p-3">
-                        {student.hasFaceRegistered 
-                          ? <span className="badge badge-active" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>Configured</span> 
-                          : <span className="badge badge-terminated" style={{ background: 'var(--background)', color: 'var(--text-secondary)' }}>Pending Setup</span>}
+                        {student.year ? (
+                          <span className="badge" style={{ background: 'rgba(9,82,155,0.08)', color: 'var(--primary)', fontWeight: '700', fontSize: '0.78rem' }}>Year {student.year}</span>
+                        ) : <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>—</span>}
+                      </td>
+                      <td className="p-3">
+                        {student.hasFaceRegistered
+                          ? <span className="badge badge-active" style={{ background: 'rgba(16,185,129,0.1)' }}>Configured</span>
+                          : <span className="badge badge-terminated" style={{ background: 'var(--background)', color: 'var(--text-secondary)' }}>Pending</span>}
                       </td>
                       <td className="p-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                         {new Date(student.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
                   ))}
-                  {standardStudents.length === 0 && <tr><td colSpan="3" className="p-8 text-center text-sm" style={{color: 'var(--text-secondary)'}}>No students found.</td></tr>}
+                  {standardStudents.filter(s =>
+                    (studentNameFilter === '' || s.name?.toLowerCase().includes(studentNameFilter.toLowerCase()) || s.email?.toLowerCase().includes(studentNameFilter.toLowerCase())) &&
+                    (branchFilter === 'All' || s.branch === branchFilter) &&
+                    (streamFilter === 'All' || s.stream === streamFilter) &&
+                    (yearFilter === 0 || s.year === yearFilter)
+                  ).length === 0 && (
+                    <tr><td colSpan="5" className="p-8 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>No students match the selected filters.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -884,33 +971,50 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === 'studentLookup' && user?.role === 'admin' && (
-          <div style={{ maxWidth: '800px' }}>
-            <div className="flex items-center gap-3 mb-6">
-              <div style={{ background: 'rgba(79, 70, 229, 0.1)', padding: '0.5rem', borderRadius: '8px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ background: 'rgba(9,82,155,0.1)', padding: '0.65rem', borderRadius: '10px' }}>
                 <Search size={24} color="var(--primary)" />
               </div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Master Lookup & Edit</h2>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>Master Lookup & Edit</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>Search any student by UID or email and edit their records</p>
+              </div>
             </div>
 
-            <form onSubmit={handleStudentSearch} className="animate-fade-in mb-8" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div>
-                <label className="form-label" style={{ fontSize: '0.95rem' }}>Lookup Student UID</label>
-                <input 
-                  type="text" 
-                  className="input uid-code-input" 
-                  style={{ textAlign: 'center', padding: '1rem', fontSize: '1.2rem' }}
-                  value={searchUid}
-                  onChange={e => setSearchUid(e.target.value)}
-                  placeholder="UID (e.g. X9YZ01) or Email"
-                  required
-                />
+            <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '2rem', alignItems: 'start' }}>
+              {/* Search input — left column */}
+              <div className="card" style={{ padding: '2rem', position: 'sticky', top: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.5rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Find Student</h3>
+                <form onSubmit={handleStudentSearch} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.85rem' }}>UID or Email Address</label>
+                    <input
+                      type="text"
+                      className="input uid-code-input"
+                      style={{ textAlign: 'center', padding: '0.9rem', fontSize: '1.1rem' }}
+                      value={searchUid}
+                      onChange={e => setSearchUid(e.target.value)}
+                      placeholder="e.g. X9YZ01 or email"
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '0.9rem', fontSize: '1rem' }}>Search</button>
+                </form>
               </div>
-              <button type="submit" className="btn btn-primary w-full justify-center" style={{ padding: '1rem', fontSize: '1.1rem' }}>Execute Search Protocol</button>
-            </form>
 
-            {searchedStudent && (
-              <form onSubmit={handleUpdateStudent} className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-                <div style={{ background: 'rgba(0,0,0,0.02)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Results — right column */}
+              <div>
+
+              {!searchedStudent && (
+                <div className="card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)', borderStyle: 'dashed' }}>
+                  <Search size={36} style={{ margin: '0 auto 1rem', opacity: 0.2, display: 'block' }} />
+                  <p>Enter a UID or email to look up a student record.</p>
+                </div>
+              )}
+              {searchedStudent && (
+                <>
+                <form onSubmit={handleUpdateStudent} className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                   <div className="flex items-center justify-between" style={{ borderBottom: '2px dashed var(--border)', paddingBottom: '1rem' }}>
                     <h3 style={{ fontSize: '1.35rem', color: 'var(--primary)' }}>Core System Identity</h3>
                     <span className="badge badge-active" style={{ padding: '0.4rem 1rem' }}>Identity Locked</span>
@@ -954,15 +1058,59 @@ const AdminDashboard = () => {
                   <div className="grid mt-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                     <div className="form-group m-0">
                        <label className="form-label" style={{ fontSize: '0.95rem' }}>Branch (Engineering)</label>
-                       <input type="text" className="input" style={{ padding: '1rem', fontSize: '1.05rem' }} value={editFormData.branch} onChange={e => setEditFormData({...editFormData, branch: e.target.value})} placeholder="e.g. Computer Science" />
+                       <select
+                         className="input"
+                         style={{ padding: '1rem', fontSize: '1.05rem' }}
+                         value={editFormData.branch}
+                         onChange={e => setEditFormData({...editFormData, branch: e.target.value})}
+                       >
+                         <option value="">— Select Branch —</option>
+                         <option value="Computer Science">Computer Science (CSE)</option>
+                         <option value="Information Science">Information Science (ISE)</option>
+                         <option value="Electronics & Communication">Electronics & Communication (ECE)</option>
+                         <option value="Electrical & Electronics">Electrical & Electronics (EEE)</option>
+                         <option value="Mechanical">Mechanical Engineering (ME)</option>
+                         <option value="Civil">Civil Engineering (CE)</option>
+                         <option value="Artificial Intelligence & ML">Artificial Intelligence & ML (AIML)</option>
+                         <option value="Data Science">Data Science (DS)</option>
+                         <option value="Biotechnology">Biotechnology (BT)</option>
+                         <option value="Chemical">Chemical Engineering (CHE)</option>
+                       </select>
                     </div>
                     <div className="form-group m-0">
                        <label className="form-label" style={{ fontSize: '0.95rem' }}>Specialization / PG Program</label>
-                       <input type="text" className="input" style={{ padding: '1rem', fontSize: '1.05rem' }} value={editFormData.specialization} onChange={e => setEditFormData({...editFormData, specialization: e.target.value})} placeholder="e.g. MCA" />
+                       <select
+                         className="input"
+                         style={{ padding: '1rem', fontSize: '1.05rem' }}
+                         value={editFormData.specialization}
+                         onChange={e => setEditFormData({...editFormData, specialization: e.target.value})}
+                       >
+                         <option value="">— Select Specialization —</option>
+                         <optgroup label="Post Graduation">
+                           <option value="MCA">MCA – Master of Computer Applications</option>
+                           <option value="MBA">MBA – Master of Business Administration</option>
+                           <option value="M.Tech CSE">M.Tech – Computer Science</option>
+                           <option value="M.Tech ECE">M.Tech – Electronics & Communication</option>
+                           <option value="M.Tech Power Electronics">M.Tech – Power Electronics</option>
+                           <option value="M.Tech Structural Engineering">M.Tech – Structural Engineering</option>
+                         </optgroup>
+                         <optgroup label="Engineering Electives">
+                           <option value="Cybersecurity">Cybersecurity</option>
+                           <option value="Cloud Computing">Cloud Computing</option>
+                           <option value="Internet of Things">Internet of Things (IoT)</option>
+                           <option value="Robotics">Robotics & Automation</option>
+                         </optgroup>
+                         <optgroup label="General">
+                           <option value="None">None / Not Applicable</option>
+                         </optgroup>
+                       </select>
                     </div>
                   </div>
-                </div>
 
+                  <button type="submit" className="btn btn-primary" style={{ padding: '1rem 3rem', fontSize: '1.1rem', marginTop: '0.5rem', width: '100%' }}>
+                    Update Student Details
+                  </button>
+                </form>
                 {/* SEARCH RESULTS: ATTEMPTS & VIOLATIONS */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                   <div style={{ background: 'var(--surface)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -993,144 +1141,280 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 </div>
-
-                <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', padding: '1rem 3rem', fontSize: '1.1rem', marginTop: '0.5rem', width: '100%' }}>
-                  Update Student Details
-                </button>
-              </form>
+              </>
             )}
-          </div>
+            </div>{/* end right column */}
+          </div>{/* end grid */}
+        </div>
         )}
         {activeTab === 'broadcast' && user?.role === 'admin' && (
-          <div className="animate-fade-in" style={{ maxWidth: '1000px' }}>
-            <div className="flex items-center gap-3 mb-6">
-              <div style={{ background: 'rgba(244, 129, 32, 0.1)', padding: '0.5rem', borderRadius: '8px' }}>
+          <div className="animate-fade-in">
+
+            {/* Page Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ background: 'rgba(244,129,32,0.12)', padding: '0.65rem', borderRadius: '10px' }}>
                 <Bell size={24} color="var(--accent)" />
               </div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Broadcast News & Alerts</h2>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>Broadcast News & Alerts</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                  Compose and send announcements to targeted student groups
+                </p>
+              </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem', alignItems: 'start' }}>
-              {/* Compose Section */}
+            {/* Compose Card — full width */}
+            <div className="card" style={{ padding: '2.5rem', marginBottom: '2.5rem' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: '700', marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+                ✏️ Compose New Announcement
+              </h3>
+              <form onSubmit={handlePostAnnouncement} style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+
+                {/* Title */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Announcement Title
+                  </label>
+                  <input
+                    type="text"
+                    className="input"
+                    style={{ padding: '0.9rem 1.1rem', fontSize: '1rem' }}
+                    placeholder="e.g., MCA Semester End Exams Schedule"
+                    value={annTitle}
+                    onChange={e => setAnnTitle(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {/* Target Audience — 3 columns */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Target Audience
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                    <select className="input" style={{ padding: '0.9rem 1rem' }} value={annStream} onChange={e => setAnnStream(e.target.value)}>
+                      <option value="All">All Streams</option>
+                      <option value="Engineering">Engineering</option>
+                      <option value="Post Graduation">Post Graduation</option>
+                    </select>
+                    <select className="input" style={{ padding: '0.9rem 1rem' }} value={annBranch} onChange={e => setAnnBranch(e.target.value)}>
+                      <option value="All">All Branches</option>
+                      <option value="Computer Science">CSE – Computer Science</option>
+                      <option value="Information Science">ISE – Information Science</option>
+                      <option value="Electronics & Communication">ECE – Electronics & Communication</option>
+                      <option value="Electrical & Electronics">EEE – Electrical & Electronics</option>
+                      <option value="Mechanical">ME – Mechanical</option>
+                      <option value="Civil">CE – Civil</option>
+                      <option value="Artificial Intelligence & ML">AIML – AI & Machine Learning</option>
+                      <option value="Data Science">DS – Data Science</option>
+                      <option value="MCA">MCA</option>
+                      <option value="MBA">MBA</option>
+                    </select>
+                    <select className="input" style={{ padding: '0.9rem 1rem' }} value={annYear} onChange={e => setAnnYear(parseInt(e.target.value))}>
+                      <option value={0}>All Years</option>
+                      <option value={1}>1st Year</option>
+                      <option value={2}>2nd Year</option>
+                      <option value={3}>3rd Year</option>
+                      <option value={4}>4th Year</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Detailed Content
+                  </label>
+                  <textarea
+                    className="input"
+                    style={{ minHeight: '140px', resize: 'vertical', padding: '0.9rem 1.1rem', fontSize: '0.95rem', lineHeight: '1.6' }}
+                    placeholder="Type your announcement message here..."
+                    value={annContent}
+                    onChange={e => setAnnContent(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {/* Submit */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ padding: '0.85rem 2.5rem', fontSize: '1rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    <Bell size={16} /> Broadcast to Students
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Recent Broadcasts */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+                  Recent Broadcasts
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  {recentAnnouncements.length} total
+                </span>
+              </div>
+
+              {recentAnnouncements.length === 0 ? (
+                <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '3rem', borderStyle: 'dashed' }}>
+                  <Bell size={32} style={{ margin: '0 auto 0.75rem', opacity: 0.25, display: 'block' }} />
+                  No announcements broadcasted yet.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                  {recentAnnouncements.map(ann => (
+                    <div
+                      key={ann._id}
+                      className="card animate-fade-in"
+                      style={{ padding: '1.5rem', borderLeft: '4px solid var(--accent)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+                    >
+                      {/* Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: '700', margin: 0, flex: 1, lineHeight: '1.4' }}>{ann.title}</h4>
+                        <button
+                          onClick={() => handleDeleteAnnouncement(ann._id)}
+                          title="Delete announcement"
+                          style={{
+                            background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)',
+                            borderRadius: '6px', color: 'var(--danger)',
+                            width: '30px', height: '30px', flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', transition: 'background 0.2s'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.07)'}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                      {/* Content */}
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6', margin: 0 }}>
+                        {ann.content}
+                      </p>
+
+                      {/* Footer: badges + date */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          <span className="badge" style={{ background: 'rgba(244,129,32,0.1)', color: 'var(--accent)', fontSize: '0.65rem', fontWeight: '700' }}>
+                            {ann.targetStream === 'All' ? 'All Streams' : ann.targetStream}
+                          </span>
+                          {ann.targetBranch && ann.targetBranch !== 'All' && (
+                            <span className="badge" style={{ background: 'rgba(9,82,155,0.08)', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '700' }}>
+                              {ann.targetBranch}
+                            </span>
+                          )}
+                          {ann.targetYear > 0 && (
+                            <span className="badge" style={{ background: 'var(--background)', fontSize: '0.65rem' }}>
+                              Year {ann.targetYear}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                          {new Date(ann.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+
+        {activeTab === 'roles' && user?.role === 'admin' && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ background: 'rgba(9,82,155,0.1)', padding: '0.65rem', borderRadius: '10px' }}>
+                <Shield size={24} color="var(--primary)" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>Access Control</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>Manage user roles and access levels using UID or email</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+              {/* Form */}
               <div className="card" style={{ padding: '2rem' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', fontWeight: '700' }}>Compose New Announcement</h3>
-                <form onSubmit={handlePostAnnouncement} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                   <div className="form-group">
-                     <label className="form-label">Announcement Title</label>
-                     <input type="text" className="input" placeholder="e.g., MCA Semester End Exams" value={annTitle} onChange={e => setAnnTitle(e.target.value)} required />
-                   </div>
-                   <div className="form-group">
-                     <label className="form-label">Target Audience</label>
-                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <select className="input" value={annStream} onChange={e => setAnnStream(e.target.value)}>
-                           <option value="All">All Streams</option>
-                           <option value="Engineering">Engineering</option>
-                           <option value="Post Graduation">Post Graduation</option>
-                        </select>
-                        <select className="input" value={annYear} onChange={e => setAnnYear(parseInt(e.target.value))}>
-                           <option value={0}>All Years</option>
-                           <option value={1}>1st Year</option>
-                           <option value={2}>2nd Year</option>
-                           <option value={3}>3rd Year</option>
-                           <option value={4}>4th Year</option>
-                        </select>
-                     </div>
-                     <input type="text" className="input mt-2" placeholder="Branch (e.g., MCA, CSE) or 'All'" value={annBranch} onChange={e => setAnnBranch(e.target.value)} />
-                   </div>
-                   <div className="form-group">
-                     <label className="form-label">Detailed Content</label>
-                     <textarea className="input" style={{ minHeight: '150px', resize: 'vertical' }} placeholder="Type your message here..." value={annContent} onChange={e => setAnnContent(e.target.value)} required></textarea>
-                   </div>
-                   <button type="submit" className="btn btn-primary w-full">Broadcast to Students</button>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.5rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assign Role</h3>
+                <form onSubmit={handleGrantRole} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.85rem' }}>Target User UID or Email</label>
+                    <input
+                      type="text"
+                      className="input uid-code-input"
+                      style={{ textAlign: 'center', padding: '0.9rem', fontSize: '1.1rem' }}
+                      value={targetUid}
+                      onChange={e => setTargetUid(e.target.value)}
+                      required
+                      placeholder="UID or Email"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.85rem' }}>Assign Privilege Level</label>
+                    <select className="input" style={{ padding: '0.9rem', fontSize: '1rem' }} value={targetRole} onChange={e => setTargetRole(e.target.value)}>
+                      <option value="student">Student — Standard access</option>
+                    </select>
+                  </div>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '0.9rem', fontSize: '1rem', marginTop: '0.5rem' }}>Deploy Protocol</button>
                 </form>
               </div>
 
-              {/* Recent Broadcasts */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-secondary)' }}>RECENT BROADCASTS</h3>
+              {/* Info card */}
+              <div className="card" style={{ padding: '2rem', background: 'rgba(9,82,155,0.03)' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>How Access Control Works</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {recentAnnouncements.length === 0 ? (
-                    <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '3rem' }}>
-                      No recent announcements found.
+                  {[
+                    { role: 'student', desc: 'Can take exams, view own results and announcements', color: '#10b981' },
+                    { role: 'moderator', desc: 'Can view all attempts, scores and violation logs', color: 'var(--accent)' },
+                    { role: 'admin', desc: 'Full system access — create exams, manage users, broadcast', color: 'var(--primary)' },
+                  ].map(r => (
+                    <div key={r.role} style={{ padding: '1rem 1.25rem', background: 'var(--surface)', borderRadius: '10px', borderLeft: `4px solid ${r.color}` }}>
+                      <p style={{ fontWeight: '700', fontSize: '0.9rem', color: r.color, textTransform: 'uppercase', marginBottom: '0.25rem' }}>{r.role}</p>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{r.desc}</p>
                     </div>
-                  ) : (
-                    recentAnnouncements.map(ann => (
-                      <div key={ann._id} className="card animate-slide-up" style={{ padding: '1.25rem', borderLeft: '4px solid var(--accent)' }}>
-                        <div className="flex justify-between items-start mb-2">
-                           <h4 style={{ fontSize: '1rem', fontWeight: '700' }}>{ann.title}</h4>
-                           <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{new Date(ann.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '1rem' }}>{ann.content}</p>
-                        <div className="flex gap-2">
-                           <span className="badge" style={{ background: 'var(--background)', fontSize: '0.65rem' }}>Target: {ann.targetBranch} {ann.targetStream}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'roles' && user?.role === 'admin' && (
-          <div style={{ maxWidth: '600px' }}>
-            <div className="flex items-center gap-3 mb-2">
-              <div style={{ background: 'rgba(79, 70, 229, 0.1)', padding: '0.5rem', borderRadius: '8px' }}>
-                <Shield size={24} color="var(--primary)" />
-              </div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Access Control</h2>
-            </div>
-            
-            <p className="mb-6" style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              You can effortlessly elevate standard students into Moderators, granting them dashboard access. Just grab their unique 6-character UID from the list.
-            </p>
-
-            <form onSubmit={handleGrantRole} className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div>
-                <label className="form-label" style={{ fontSize: '0.95rem' }}>Target User UID</label>
-                <input 
-                  type="text" 
-                  className="input uid-code-input" 
-                  style={{ textAlign: 'center', padding: '1rem', fontSize: '1.2rem' }}
-                  value={targetUid} 
-                  onChange={e => setTargetUid(e.target.value)} 
-                  required 
-                  placeholder="UID or Email" 
-                />
-              </div>
-              <div>
-                <label className="form-label" style={{ fontSize: '0.95rem' }}>Assign Privileges</label>
-                <select className="input" style={{ padding: '1rem', fontSize: '1rem' }} value={targetRole} onChange={e => setTargetRole(e.target.value)}>
-                  <option value="moderator">Moderator (Can view metrics)</option>
-                  <option value="student">Student (Demote to standard access)</option>
-                </select>
-              </div>
-              <button type="submit" className="btn btn-primary w-full justify-center" style={{ padding: '1.25rem', fontSize: '1.1rem', marginTop: '1rem' }}>Deploy Protocol</button>
-            </form>
           </div>
         )}
 
         {activeTab === 'manageExams' && user?.role === 'admin' && (
           <div>
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Exam Operations</h2>
-                  <div style={{ position: 'relative' }}>
-                    <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                    <input 
-                      type="text" 
-                      placeholder="Search Exam ID or Title..." 
-                      value={examSearch}
-                      onChange={(e) => setExamSearch(e.target.value)}
-                      className="input"
-                      style={{ padding: '0.5rem 1rem 0.5rem 2.5rem', width: '240px', fontSize: '0.85rem' }}
-                    />
-                  </div>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ background: 'rgba(9,82,155,0.1)', padding: '0.65rem', borderRadius: '10px' }}>
+                  <Settings size={22} color="var(--primary)" />
                 </div>
-                <button className="btn btn-primary" onClick={() => setActiveTab('createExam')}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>Manage Exams</h2>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>{exams.length} exam{exams.length !== 1 ? 's' : ''} in system</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={15} style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search exams..."
+                    value={examSearch}
+                    onChange={e => setExamSearch(e.target.value)}
+                    className="input"
+                    style={{ paddingLeft: '2.4rem', borderRadius: '999px', fontSize: '0.85rem', width: '220px' }}
+                  />
+                </div>
+                <button className="btn btn-primary" onClick={() => setActiveTab('createExam')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.7rem 1.4rem' }}>
                   <PlusCircle size={16} /> New Exam
                 </button>
+              </div>
             </div>
 
             {/* Analytics Modal */}
@@ -1237,84 +1521,120 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === 'createExam' && user?.role === 'admin' && (
-          <div style={{ maxWidth: '800px' }}>
-            <h2 className="mb-6" style={{ fontSize: '1.5rem', fontWeight: '600' }}>Architect New Exam</h2>
-            
-            <form onSubmit={handleCreateExam}>
-              <div className="mb-6" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="flex gap-4">
-                  <div className="form-group flex-1 m-0">
-                    <label className="form-label">Exam Title</label>
-                    <input type="text" className="input" style={{ fontSize: '1.1rem', padding: '0.8rem 1rem' }} value={examTitle} onChange={e => setExamTitle(e.target.value)} required placeholder="e.g. CS101 Midterm" />
-                  </div>
-                  <div className="form-group m-0" style={{ width: '150px' }}>
-                    <label className="form-label">Duration (m)</label>
-                    <input type="number" min="1" className="input" style={{ fontSize: '1.1rem', padding: '0.8rem 1rem' }} value={examDuration} onChange={e => setExamDuration(e.target.value)} required />
-                  </div>
-                </div>
-                
-                <div className="flex gap-4 mt-4">
-                  <div className="form-group flex-1 m-0">
-                    <label className="form-label">Scheduled Date & Time</label>
-                    <input type="datetime-local" className="input" style={{ fontSize: '1.1rem', padding: '0.8rem 1rem' }} value={scheduledFor} onChange={e => setScheduledFor(e.target.value)} required />
-                  </div>
-                  <div className="form-group flex-1 m-0">
-                    <label className="form-label">Target Stream</label>
-                    <select className="input" style={{ fontSize: '1.1rem', padding: '0.8rem 1rem' }} value={examStream} onChange={e => { setExamStream(e.target.value); setExamTargetBranch('All'); setExamTargetYear(0); }}>
-                      <option value="All">All Students (Universal)</option>
-                      <option value="Engineering">Engineering (B.E.)</option>
-                      <option value="Post Graduation">Post Graduation</option>
-                    </select>
-                  </div>
-                </div>
+          <div>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ background: 'rgba(9,82,155,0.1)', padding: '0.65rem', borderRadius: '10px' }}>
+                <PlusCircle size={22} color="var(--primary)" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0 }}>Create New Exam</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>Configure exam settings and add questions below</p>
+              </div>
+            </div>
 
-                {/* Branch + Year targeting — only shown when stream ≠ All */}
-                {examStream !== 'All' && (
-                  <div className="flex gap-4 mt-4">
-                    <div className="form-group flex-1 m-0">
-                      <label className="form-label">
-                        {examStream === 'Engineering' ? 'Target Branch' : 'Target PG Programme'}
-                      </label>
-                      <select className="input" style={{ fontSize: '1rem', padding: '0.8rem 1rem' }} value={examTargetBranch} onChange={e => setExamTargetBranch(e.target.value)}>
-                        <option value="All">All {examStream === 'Engineering' ? 'Branches' : 'Programmes'}</option>
-                        {examStream === 'Engineering' ? (
-                          <>
-                            <option>Aeronautical Engineering</option>
-                            <option>Computer Science & Engineering</option>
-                            <option>Artificial Intelligence & Machine Learning</option>
-                            <option>CSE (IoT & Cyber Security with Blockchain Technology)</option>
-                            <option>CSE (Artificial Intelligence & Machine Learning)</option>
-                            <option>Information Science & Engineering</option>
-                            <option>Electronics & Communication Engineering</option>
-                            <option>Mechanical Engineering</option>
-                            <option>Mechatronics</option>
-                            <option>Robotics and Artificial Intelligence</option>
-                            <option>Civil Engineering</option>
-                          </>
-                        ) : (
-                          <>
-                            <option>Master of Computer Applications (MCA)</option>
-                            <option>Master of Business Administration (MBA)</option>
-                            <option>Master of Technology (M.Tech) in Computer Science & Engg.</option>
-                          </>
-                        )}
-                      </select>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+              {/* Left: basic config */}
+              <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>Exam Configuration</h3>
+                <form id="create-exam-form" onSubmit={handleCreateExam} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div className="form-group m-0">
+                    <label className="form-label">Exam Title</label>
+                    <input type="text" className="input" style={{ fontSize: '1rem', padding: '0.8rem 1rem' }} value={examTitle} onChange={e => setExamTitle(e.target.value)} required placeholder="e.g. CS101 Midterm" />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-group m-0">
+                      <label className="form-label">Scheduled Start</label>
+                      <input type="datetime-local" className="input" style={{ fontSize: '1rem', padding: '0.8rem 1rem' }} value={scheduledFor} onChange={e => setScheduledFor(e.target.value)} required />
                     </div>
-                    <div className="form-group m-0" style={{ width: '180px' }}>
-                      <label className="form-label">Target Year</label>
-                      <select className="input" style={{ fontSize: '1rem', padding: '0.8rem 1rem' }} value={examTargetYear} onChange={e => setExamTargetYear(parseInt(e.target.value))}>
-                        <option value={0}>All Years</option>
-                        <option value={1}>1st Year</option>
-                        <option value={2}>2nd Year</option>
-                        {examStream === 'Engineering' && <option value={3}>3rd Year</option>}
-                        {examStream === 'Engineering' && <option value={4}>4th Year</option>}
-                      </select>
+                    <div className="form-group m-0">
+                      <label className="form-label">Scheduled End</label>
+                      <input type="datetime-local" className="input" style={{ fontSize: '1rem', padding: '0.8rem 1rem' }} value={examEndTime} onChange={e => setExamEndTime(e.target.value)} required />
                     </div>
                   </div>
-                )}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: '1rem' }}>
+                    <div className="form-group m-0">
+                      <label className="form-label">Target Stream</label>
+                      <select className="input" style={{ fontSize: '1rem', padding: '0.8rem 1rem' }} value={examStream} onChange={e => { setExamStream(e.target.value); setExamTargetBranch('All'); setExamTargetYear(0); }}>
+                        <option value="All">All Students (Universal)</option>
+                        <option value="Engineering">Engineering (B.E.)</option>
+                        <option value="Post Graduation">Post Graduation</option>
+                      </select>
+                    </div>
+                    <div className="form-group m-0">
+                      <label className="form-label">Duration (min)</label>
+                      <input type="number" min="1" className="input" style={{ fontSize: '1rem', padding: '0.8rem 1rem' }} value={examDuration} onChange={e => setExamDuration(e.target.value)} required />
+                    </div>
+                  </div>
+
+                  {/* Branch + Year — only shown when stream ≠ All */}
+                  {examStream !== 'All' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: '1rem' }}>
+                      <div className="form-group m-0">
+                        <label className="form-label">{examStream === 'Engineering' ? 'Target Branch' : 'Target PG Programme'}</label>
+                        <select className="input" style={{ fontSize: '1rem', padding: '0.8rem 1rem' }} value={examTargetBranch} onChange={e => setExamTargetBranch(e.target.value)}>
+                          <option value="All">All {examStream === 'Engineering' ? 'Branches' : 'Programmes'}</option>
+                          {examStream === 'Engineering' ? (
+                            <>
+                              <option>Aeronautical Engineering</option>
+                              <option>Computer Science & Engineering</option>
+                              <option>Artificial Intelligence & Machine Learning</option>
+                              <option>CSE (IoT & Cyber Security with Blockchain Technology)</option>
+                              <option>CSE (Artificial Intelligence & Machine Learning)</option>
+                              <option>Information Science & Engineering</option>
+                              <option>Electronics & Communication Engineering</option>
+                              <option>Mechanical Engineering</option>
+                              <option>Mechatronics</option>
+                              <option>Robotics and Artificial Intelligence</option>
+                              <option>Civil Engineering</option>
+                            </>
+                          ) : (
+                            <>
+                              <option>Master of Computer Applications (MCA)</option>
+                              <option>Master of Business Administration (MBA)</option>
+                              <option>Master of Technology (M.Tech) in Computer Science & Engg.</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+                      <div className="form-group m-0">
+                        <label className="form-label">Target Year</label>
+                        <select className="input" style={{ fontSize: '1rem', padding: '0.8rem 1rem' }} value={examTargetYear} onChange={e => setExamTargetYear(parseInt(e.target.value))}>
+                          <option value={0}>All Years</option>
+                          <option value={1}>1st Year</option>
+                          <option value={2}>2nd Year</option>
+                          {examStream === 'Engineering' && <option value={3}>3rd Year</option>}
+                          {examStream === 'Engineering' && <option value={4}>4th Year</option>}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </form>
               </div>
 
-              <div>
+              {/* Right: summary preview */}
+              <div className="card" style={{ padding: '2rem', background: 'rgba(9,82,155,0.02)', height: 'fit-content' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1.5rem' }}>Exam Summary</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {[
+                    { label: 'Title', value: examTitle || '—' },
+                    { label: 'Start Time', value: scheduledFor ? new Date(scheduledFor).toLocaleString() : '—' },
+                    { label: 'End Time', value: examEndTime ? new Date(examEndTime).toLocaleString() : '—' },
+                    { label: 'Duration', value: examDuration ? `${examDuration} minutes` : '—' },
+                    { label: 'Target', value: examStream === 'All' ? 'All Students' : `${examStream}${examTargetBranch !== 'All' ? ` › ${examTargetBranch}` : ''}${examTargetYear > 0 ? ` (Year ${examTargetYear})` : ''}` },
+                    { label: 'Questions', value: `${questions.length} configured` },
+                  ].map(row => (
+                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>{row.label}</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: '700', color: 'var(--text-primary)', textAlign: 'right', maxWidth: '60%' }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Questions section — full width */}
+            <form onSubmit={handleCreateExam}>
                 <h4 className="mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.85rem' }}>
                   Question Blueprint
                 </h4>
@@ -1412,23 +1732,24 @@ const AdminDashboard = () => {
                   </div>
                 ))}
 
-                <button type="button" className="btn" style={{ border: '1px dashed var(--primary)', color: 'var(--primary)', width: '100%', padding: '1rem', background: 'rgba(79, 70, 229, 0.05)', marginBottom: '8rem' }} onClick={addQuestion}>
+                <button type="button" className="btn" style={{ border: '1px dashed var(--primary)', color: 'var(--primary)', width: '100%', padding: '1rem', background: 'rgba(79, 70, 229, 0.05)', marginBottom: '2rem' }} onClick={addQuestion}>
                   <PlusCircle size={18} /> Append Another Question
+                </button>
+
+              {/* Sticky publish footer */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', bottom: '0', padding: '1.5rem 0', borderTop: '2px solid var(--border)', zIndex: 10, marginTop: '2rem', background: 'var(--background)' }}>
+                <div>
+                  <p style={{ fontWeight: 'bold', fontSize: '1.1rem', margin: 0 }}>Ready to deploy?</p>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}>Instantly pushes to all Student client apps.</p>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--danger)', fontWeight: 'bold', marginTop: '0.4rem', borderLeft: '3px solid var(--danger)', paddingLeft: '0.5rem' }}>
+                    ⚠️ ONCE PUBLISHED, EXAMS CANNOT BE EDITED!
+                  </p>
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.05rem', boxShadow: 'var(--shadow-glow)' }}>
+                  Publish Exam Live
                 </button>
               </div>
 
-              <div className="flex items-center justify-between" style={{ display: 'flex', alignItems: 'center', position: 'sticky', bottom: '0', padding: '1.5rem 0', borderTop: '2px solid var(--border)', zIndex: 10, marginTop: '2rem', background: 'var(--surface)' }}>
-                 <div>
-                   <p style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Ready to deploy?</p>
-                   <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Instantly pushes to all Student client apps.</p>
-                   <p style={{ fontSize: '0.85rem', color: 'var(--danger)', fontWeight: 'bold', marginTop: '0.4rem', borderLeft: '3px solid var(--danger)', paddingLeft: '0.5rem' }}>
-                     ⚠️ ONCE PUBLISHED, EXAMS CANNOT BE EDITED!
-                   </p>
-                 </div>
-                 <button type="submit" className="btn btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.05rem', boxShadow: 'var(--shadow-glow)' }}>
-                   Publish Exam Live
-                 </button>
-              </div>
             </form>
           </div>
         )}

@@ -1,7 +1,7 @@
 const express = require('express');
 const Log = require('../models/Log');
 const Attempt = require('../models/Attempt');
-const { protect, moderatorOrAdmin, mainAdminOnly } = require('../middleware/authMiddleware');
+const { protect, mainAdminOnly } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Exam = require('../models/Exam');
 const mongoose = require('mongoose');
@@ -9,7 +9,7 @@ const mongoose = require('mongoose');
 const router = express.Router();
 
 // Get all logs (exclude heavy snapshotVideo field to prevent memory overflow)
-router.get('/logs', protect, moderatorOrAdmin, async (req, res) => {
+router.get('/logs', protect, mainAdminOnly, async (req, res) => {
     try {
         const logs = await Log.aggregate([
             { $addFields: { hasSnapshot: { $cond: { if: { $and: [{ $ne: ['$snapshotVideo', null] }, { $ne: ['$snapshotVideo', ''] }] }, then: true, else: false } } } },
@@ -32,7 +32,7 @@ router.get('/logs', protect, moderatorOrAdmin, async (req, res) => {
 });
 
 // Get a single log's snapshot data (on demand)
-router.get('/logs/:id/snapshot', protect, moderatorOrAdmin, async (req, res) => {
+router.get('/logs/:id/snapshot', protect, mainAdminOnly, async (req, res) => {
     try {
         const log = await Log.findById(req.params.id).select('snapshotVideo');
         if (!log) return res.status(404).json({ message: 'Log not found' });
@@ -43,29 +43,20 @@ router.get('/logs/:id/snapshot', protect, moderatorOrAdmin, async (req, res) => 
 });
 
 // Get all attempts
-router.get('/attempts', protect, moderatorOrAdmin, async (req, res) => {
+router.get('/attempts', protect, mainAdminOnly, async (req, res) => {
     try {
         const attempts = await Attempt.find({})
             .populate('userId', 'name email stream specialization uid usn')
             .populate('examId', 'title questions uid')
             .sort({ startedAt: -1 });
-            
-        let result = attempts;
-        if (req.user.role === 'moderator') {
-            result = attempts.map(a => {
-                const doc = a.toObject();
-                delete doc.score;
-                return doc;
-            });
-        }
-        res.json(result);
+        res.json(attempts);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
 });
 
 // Delete an attempt (Allow student to retake)
-router.delete('/attempts/:id', protect, moderatorOrAdmin, async (req, res) => {
+router.delete('/attempts/:id', protect, mainAdminOnly, async (req, res) => {
     try {
         const attempt = await Attempt.findById(req.params.id);
         if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
@@ -83,7 +74,7 @@ router.delete('/attempts/:id', protect, moderatorOrAdmin, async (req, res) => {
 });
 
 // Manually grade an attempt (Convert from pending_review to submitted)
-router.put('/attempts/:id/grade', protect, moderatorOrAdmin, async (req, res) => {
+router.put('/attempts/:id/grade', protect, mainAdminOnly, async (req, res) => {
     try {
         const attempt = await Attempt.findById(req.params.id);
         if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
@@ -100,10 +91,10 @@ router.put('/attempts/:id/grade', protect, moderatorOrAdmin, async (req, res) =>
     }
 });
 
-// Get all users (students and moderators depending on need, mostly just showing standard profiles)
-router.get('/users', protect, moderatorOrAdmin, async (req, res) => {
+// Get all users (students)
+router.get('/users', protect, mainAdminOnly, async (req, res) => {
     try {
-        const users = await User.find({ role: { $in: ['student', 'moderator'] } })
+        const users = await User.find({ role: 'student' })
             .select('-password -faceEncoding')
             .sort({ createdAt: -1 });
         
@@ -129,7 +120,7 @@ router.get('/users', protect, moderatorOrAdmin, async (req, res) => {
 });
 
 // Get all exams for admin view
-router.get('/exams', protect, moderatorOrAdmin, async (req, res) => {
+router.get('/exams', protect, mainAdminOnly, async (req, res) => {
     try {
         const exams = await Exam.find({}).sort({ createdAt: -1 });
         res.json(exams);
@@ -142,7 +133,7 @@ router.get('/exams', protect, moderatorOrAdmin, async (req, res) => {
 router.post('/grant-role', protect, mainAdminOnly, async (req, res) => {
     try {
         const { uid, newRole } = req.body;
-        if (!['student', 'moderator', 'admin'].includes(newRole)) {
+        if (!['student', 'admin'].includes(newRole)) {
             return res.status(400).json({ message: 'Invalid role' });
         }
 
@@ -185,7 +176,7 @@ router.post('/grant-role', protect, mainAdminOnly, async (req, res) => {
 });
 
 // Search Student by UID (Comprehensive Report)
-router.get('/search/:uid', protect, moderatorOrAdmin, async (req, res) => {
+router.get('/search/:uid', protect, mainAdminOnly, async (req, res) => {
     try {
         const queryInput = req.params.uid.trim();
         console.log(`[AdminSearch] Searching for: "${queryInput}"`);

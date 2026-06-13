@@ -48,7 +48,10 @@ router.get('/', protect, async (req, res) => {
 // Create exam (Main Admin only)
 router.post('/create', protect, mainAdminOnly, async (req, res) => {
     try {
-        const { title, duration, questions, scheduledFor, stream, targetBranch, targetYear } = req.body;
+        const { title, duration, questions, scheduledFor, endTime, stream, targetBranch, targetYear } = req.body;
+        if (!title || !duration || !questions || !scheduledFor || !endTime) {
+            return res.status(400).json({ message: 'Please provide all required fields' });
+        }
         
         // Generate a unique exam UID with retry on collision
         const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -71,6 +74,7 @@ router.post('/create', protect, mainAdminOnly, async (req, res) => {
                     duration, 
                     questions, 
                     scheduledFor,
+                    endTime,
                     stream: stream || 'All',
                     targetBranch: targetBranch || 'All',
                     targetYear: targetYear ? parseInt(targetYear) : 0,
@@ -102,7 +106,7 @@ router.post('/create', protect, mainAdminOnly, async (req, res) => {
                 sendEmail({
                     email: student.email,
                     subject: `📝 New Exam Scheduled: ${exam.title}`,
-                    message: `Hello ${student.name},\n\nA new exam has been scheduled for your cohort:\n\nTitle: ${exam.title}\nDuration: ${exam.duration} Minutes\nScheduled For: ${new Date(exam.scheduledFor).toLocaleString()}\n\nYou can view the details and prepare on the portal: https://collageexamportal.vercel.app/`
+                    message: `Hello ${student.name},\n\nA new exam has been scheduled for your cohort:\n\nTitle: ${exam.title}\nDuration: ${exam.duration} Minutes\nScheduled Start: ${new Date(exam.scheduledFor).toLocaleString()}\nScheduled End: ${new Date(exam.endTime).toLocaleString()}\n\nYou can view the details and prepare on the portal: https://collageexamportal.vercel.app/`
                 }).catch(err => console.error(`Failed to send exam notification to ${student.email}`, err));
             });
         } catch (mailErr) {
