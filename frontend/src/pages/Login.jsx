@@ -21,8 +21,6 @@ const Login = () => {
       const userData = await login(email, password);
       if (userData.role === 'admin') {
         navigate('/admin');
-      } else if (userData.role === 'moderator') {
-        navigate('/moderator');
       } else {
         navigate('/');
       }

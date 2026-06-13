@@ -12,6 +12,7 @@ const examSchema = new mongoose.Schema({
     uid: { type: String, unique: true, sparse: true }, // Institutional UID (EXM-XXXX)
     title: { type: String, required: true },
     scheduledFor: { type: Date, required: true },
+    endTime: { type: Date, required: true },
     stream: { type: String, enum: ['All', 'Engineering', 'Post Graduation'], default: 'All' },
     targetBranch: { type: String, default: 'All' }, // e.g. 'CSE', 'MCA', 'All'
     targetYear: { type: Number, default: 0 },        // 0 = all years, 1-4 = specific year

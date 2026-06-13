@@ -35,12 +35,4 @@ const mainAdminOnly = (req, res, next) => {
     }
 };
 
-const moderatorOrAdmin = (req, res, next) => {
-    if (req.user && (req.user.role === 'admin' || req.user.role === 'moderator')) {
-        next();
-    } else {
-        res.status(403).json({ message: 'Not authorized. Elevated permissions required.' });
-    }
-};
-
-module.exports = { protect, mainAdminOnly, moderatorOrAdmin };
+module.exports = { protect, mainAdminOnly };

@@ -477,10 +477,7 @@ main>div {
   justify-content: center;
 }
 
-.badge-moderator {
-  background: #6366f1;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
-}
+
 
 .badge-admin {
   background: #f43f5e;

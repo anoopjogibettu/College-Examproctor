@@ -6,7 +6,9 @@ const announcementSchema = new mongoose.Schema({
     targetStream: { type: String, default: 'All' }, // All, Engineering, etc.
     targetBranch: { type: String, default: 'All' }, // CSE, MCA, All
     targetYear: { type: Number, default: 0 },       // 0 = all years
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]  // users who marked as read
 }, { timestamps: true });
 
 module.exports = mongoose.model('Announcement', announcementSchema);
+

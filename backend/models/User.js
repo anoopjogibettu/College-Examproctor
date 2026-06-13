@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
     collegeDetails: { type: String, default: '' },
     usn: { type: String, default: '' },            // University Seat Number (issued by Admin)
     faceEncoding: { type: [Number], default: [] },
-    role: { type: String, enum: ['student', 'moderator', 'admin'], default: 'student' },
+    role: { type: String, enum: ['student', 'admin'], default: 'student' },
     activeToken: { type: String, default: null },
     resetPasswordToken: { type: String },
     resetPasswordExpire: { type: Date }
