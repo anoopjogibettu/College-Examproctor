@@ -49,9 +49,11 @@ const ExamSession = () => {
 
   // Fullscreen lock & auto-submit
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
+  const isTerminating = useRef(false);
   
   useEffect(() => {
     if (shouldAutoSubmit) {
+      isTerminating.current = true;
       alert("Exam Terminated: You attempted to minimize or exit fullscreen, which is strictly prohibited. Your current progress has been submitted.");
       submitExam();
     }
@@ -126,7 +128,8 @@ const ExamSession = () => {
 
     // 3. Tab switch listener
     const handleVisibilityChange = () => {
-      if (document.hidden && screenRecorderRef.current) {
+      if (isTerminating.current) return;
+      if (document.visibilityState === 'hidden') {
         recordViolation('tab_switched', 'User switched tabs or minimized the browser during the exam');
         setShouldAutoSubmit(true);
       }
@@ -135,7 +138,8 @@ const ExamSession = () => {
 
     // 4. Fullscreen exit listener — triggers 10s clip + termination
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && screenRecorderRef.current) {
+      if (isTerminating.current) return;
+      if (!document.fullscreenElement) {
         recordViolation('fullscreen_exit', 'Student exited fullscreen mode during the exam');
         setShouldAutoSubmit(true);
       }
@@ -179,6 +183,7 @@ const ExamSession = () => {
 
     // 7. Window Blur listener (Catches OS-level overrides like Cmd+Tab, Spotlight, Mission Control)
     const handleBlur = () => {
+      if (isTerminating.current) return;
       if (screenRecorderRef.current) {
         recordViolation('focus_lost', 'User switched apps (Cmd+Tab) or lost window focus');
         setShouldAutoSubmit(true);
@@ -449,6 +454,7 @@ const ExamSession = () => {
       setStatus(`Violation recorded: ${description}`);
 
       if (res.data.status === 'terminated') {
+        isTerminating.current = true;
         alert('Exam Terminated due to a critical violation.');
         navigate('/');
       }

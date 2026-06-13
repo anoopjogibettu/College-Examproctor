@@ -37,6 +37,8 @@ const Register = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { register, sendOtp } = useContext(AuthContext);
   const navigate = useNavigate();
 
