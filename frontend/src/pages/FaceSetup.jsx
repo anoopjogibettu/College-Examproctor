@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as faceapi from '@vladmandic/face-api';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Camera, CheckCircle } from 'lucide-react';
+import { Camera, CheckCircle, X } from 'lucide-react';
 
 const FaceSetup = () => {
   const videoRef = useRef();
@@ -86,7 +86,16 @@ const FaceSetup = () => {
 
   return (
     <div className="main-content flex items-center justify-center">
-      <div className="card w-full" style={{ maxWidth: '640px' }}>
+      <div className="card w-full" style={{ maxWidth: '640px', position: 'relative' }}>
+        <button 
+          onClick={() => navigate('/')} 
+          style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '0.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          title="Close"
+        >
+          <X size={20} />
+        </button>
         <h2 className="text-gradient">Biometric Registration</h2>
         <p className="mb-4 text-center" style={{ color: 'var(--text-secondary)' }}>
           {status}
