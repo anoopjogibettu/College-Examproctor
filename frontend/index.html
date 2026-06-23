@@ -5,9 +5,36 @@
     <link rel="icon" type="image/svg+xml" href="/Logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="MITE Exam Portal – Secure online examination system for Mangalore Institute of Technology & Engineering students." />
+    <meta name="theme-color" content="#09529B" />
     <title>MITE Exam Portal</title>
+
+    <!--
+      Performance: Preload the LCP image so the browser fetches it in parallel
+      with JS parsing instead of waiting for React to mount the virtual DOM.
+      This eliminates the ~672 ms resource-discovery delay identified in the audit.
+    -->
+    <link rel="preload" as="image" href="/logo_name.png" fetchpriority="high" />
+
+    <!--
+      Preconnect to the API backend to eliminate TCP/TLS handshake latency
+      from the critical path. AuthContext fires /api/auth/profile immediately
+      on mount; AdminDashboard fires 4 sequential XHR requests.
+      Preconnecting here means those sockets are ready before JS even runs.
+    -->
+    <link rel="preconnect" href="http://localhost:5001" />
+
+    <!-- DNS prefetch as a legacy fallback for browsers that don't support preconnect -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+
+    <!-- Preconnect to font origins to eliminate connection setup latency -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!--
+      Inter font with display=swap: text renders immediately with a system font
+      and swaps to Inter once it loads — prevents invisible text during load (FOIT).
+    -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>

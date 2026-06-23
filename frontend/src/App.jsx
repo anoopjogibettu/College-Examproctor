@@ -1,17 +1,48 @@
-import React, { useContext } from 'react';
+import React, { useContext, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import { ThemeProvider, ThemeContext } from './context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import FaceSetup from './pages/FaceSetup';
-import ExamSession from './pages/ExamSession';
-import AdminDashboard from './pages/AdminDashboard';
 
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+/**
+ * Code-split every page with React.lazy().
+ * Each page becomes a separate JS chunk that is only downloaded when the
+ * user navigates to that route — dramatically reducing the amount of JS
+ * React must parse before it can paint the LCP element.
+ *
+ * AdminDashboard alone is ~105 KB of JS; lazy-loading it means
+ * the /login and / routes are unaffected by its size.
+ */
+const Login         = lazy(() => import('./pages/Login'));
+const Register      = lazy(() => import('./pages/Register'));
+const Dashboard     = lazy(() => import('./pages/Dashboard'));
+const FaceSetup     = lazy(() => import('./pages/FaceSetup'));
+const ExamSession   = lazy(() => import('./pages/ExamSession'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword  = lazy(() => import('./pages/ResetPassword'));
+
+/** Minimal full-page spinner shown while a lazy chunk loads. */
+const PageLoader = () => (
+  <div style={{
+    minHeight: '60vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    gap: '1rem',
+    color: 'var(--text-secondary)'
+  }}>
+    <div style={{
+      width: '36px', height: '36px',
+      border: '3px solid var(--border)',
+      borderTopColor: 'var(--primary)',
+      borderRadius: '50%',
+      animation: 'spin 0.75s linear infinite'
+    }} />
+    <span style={{ fontSize: '0.85rem', fontWeight: '500' }}>Loading…</span>
+  </div>
+);
 
 
 import { Link } from 'react-router-dom';
@@ -52,7 +83,18 @@ const MITENavbar = () => {
       <a href="https://mite.ac.in" target="_blank" rel="noopener noreferrer"
         style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
         <img src="/Logo.svg" alt="MITE Logo" style={{ height: '48px' }} />
-        <img src="/logo_name.png" alt="MITE" style={{ height: '32px', filter: 'brightness(0) invert(1)' }} />
+        {/* fetchpriority="high" tells the browser this is the LCP image.
+            Even though it's rendered by React (late discovery), the
+            priority hint pushes it to the front of the network queue,
+            cutting the render delay measured in the audit. */}
+        <img
+          src="/logo_name.png"
+          alt="MITE"
+          fetchpriority="high"
+          width="auto"
+          height="32"
+          style={{ height: '32px', filter: 'brightness(0) invert(1)' }}
+        />
       </a>
 
       {/* Center: Portal title (Absolute Centered) */}
@@ -93,19 +135,21 @@ const MITENavbar = () => {
 
 const AppRoutes = () => {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+    // Suspense catches the lazy() promise thrown by each page component
+    // and shows PageLoader until the chunk has downloaded and parsed.
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
 
-
-      <Route path="/face-setup" element={<PrivateRoute><FaceSetup /></PrivateRoute>} />
-      <Route path="/exam/:id" element={<PrivateRoute><ExamSession /></PrivateRoute>} />
-      <Route path="/admin" element={<PrivateRoute roleRequired="admin"><AdminDashboard /></PrivateRoute>} />
-
-    </Routes>
+        <Route path="/face-setup" element={<PrivateRoute><FaceSetup /></PrivateRoute>} />
+        <Route path="/exam/:id" element={<PrivateRoute><ExamSession /></PrivateRoute>} />
+        <Route path="/admin" element={<PrivateRoute roleRequired="admin"><AdminDashboard /></PrivateRoute>} />
+      </Routes>
+    </Suspense>
   );
 };
 

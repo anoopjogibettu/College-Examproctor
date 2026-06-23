@@ -66,7 +66,28 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return (
+        <div style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            gap: '1rem',
+            backgroundColor: 'var(--background)',
+            color: 'var(--text-secondary)'
+        }}>
+            <div style={{
+                width: '40px',
+                height: '40px',
+                border: '3px solid var(--border)',
+                borderTopColor: 'var(--primary)',
+                borderRadius: '50%',
+                animation: 'spin 0.75s linear infinite'
+            }} />
+            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>Authenticating…</span>
+        </div>
+    );
 
     return (
         <AuthContext.Provider value={{ user, login, register, logout, updateFaceRegistrationStatus, sendOtp }}>

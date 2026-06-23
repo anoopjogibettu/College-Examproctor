@@ -19,6 +19,7 @@ const Dashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'profile'
   const [bellOpen, setBellOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,10 +79,24 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  const activeExams = exams.filter(e => !e.hasAttempted);
+  const filteredExams = exams.filter(e => {
+    if (e.hasAttempted) return false;
+    if (searchQuery.trim() !== '') {
+      return e.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    return true;
+  });
+
+  const activeExams = filteredExams;
   const upcomingExam = activeExams.length > 0 ? activeExams[0] : null;
   const otherExams = activeExams.slice(1);
-  const publishedResults = myResults?.attempts?.filter(r => r.examId?.resultsPublished) || [];
+  const publishedResults = myResults?.attempts?.filter(r => {
+    if (!r.examId?.resultsPublished) return false;
+    if (searchQuery.trim() !== '') {
+      return r.examId?.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    return true;
+  }) || [];
 
   // ── Sidebar nav item ──
   const NavItem = ({ id, icon: Icon, label }) => (
@@ -144,8 +159,19 @@ const Dashboard = () => {
         {/* TOP BAR */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ position: 'relative', width: '300px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-            <input type="text" placeholder="Search assessments..." className="input" style={{ paddingLeft: '2.5rem', borderRadius: '999px', background: 'var(--surface)', border: 'none', boxShadow: 'var(--shadow-sm)' }} disabled />
+            {activeTab === 'dashboard' && (
+              <>
+                <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input 
+                  type="text" 
+                  placeholder="Search assessments..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input" 
+                  style={{ paddingLeft: '2.5rem', borderRadius: '999px', background: 'var(--surface)', border: 'none', boxShadow: 'var(--shadow-sm)' }} 
+                />
+              </>
+            )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>

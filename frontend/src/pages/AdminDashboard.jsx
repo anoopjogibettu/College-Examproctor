@@ -443,11 +443,7 @@ const AdminDashboard = () => {
       <main style={{ flex: 1, padding: '2rem 3rem', display: 'flex', flexDirection: 'column', gap: '2rem', overflowY: 'auto', minWidth: 0 }}>
 
         {/* TOP HEADER BAR */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ position: 'relative', width: '280px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-            <input type="text" placeholder="Search students, exams..." className="input" style={{ paddingLeft: '2.5rem', borderRadius: '999px', background: 'var(--surface)', border: 'none', boxShadow: 'var(--shadow-sm)', fontSize: '0.85rem' }} disabled />
-          </div>
+        <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             {/* Sync button */}
             <button

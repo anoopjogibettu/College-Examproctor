@@ -203,6 +203,11 @@ h6 {
   }
 }
 
+/* Used by PageLoader (App.jsx) and the AdminDashboard sync indicator */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
