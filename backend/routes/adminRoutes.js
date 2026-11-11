@@ -160,10 +160,12 @@ router.post('/grant-role', protect, mainAdminOnly, async (req, res) => {
         // Notify user of role change
         try {
             const sendEmail = require('../utils/sendEmail');
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            const portalName = process.env.PORTAL_NAME || 'Exam Portal';
             await sendEmail({
                 email: user.email,
                 subject: '⚖️ Institutional Role Updated',
-                message: `Hello ${user.name},\n\nYour institutional role on the MITE Exam Portal has been updated by the administration.\n\nNew Role: ${newRole.toUpperCase()}\n\nPlease re-login to the portal to activate your new permissions: https://collageexamportal.vercel.app/`
+                message: `Hello ${user.name},\n\nYour institutional role on the ${portalName} has been updated by the administration.\n\nNew Role: ${newRole.toUpperCase()}\n\nPlease re-login to the portal to activate your new permissions: ${frontendUrl}/`
             });
         } catch (mailErr) {
             console.error('Failed to send role change email:', mailErr);

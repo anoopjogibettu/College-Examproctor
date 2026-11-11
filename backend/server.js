@@ -18,9 +18,13 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/examproctor';
+mongoose.connect(mongoUri)
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log('MongoDB connection error:', err));
+  .catch(err => {
+    console.error('MongoDB connection error:', err.message);
+    console.warn('Tip: Check that MongoDB is running and MONGODB_URI is correctly set in your .env file.');
+  });
 
 // Routes
 app.use('/api/auth', authRoutes);

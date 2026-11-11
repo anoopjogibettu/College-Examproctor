@@ -102,11 +102,14 @@ router.post('/create', protect, mainAdminOnly, async (req, res) => {
 
             const students = await User.find(query).select('email name');
             
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            const portalName = process.env.PORTAL_NAME || 'Exam Cell';
+            
             students.forEach(student => {
                 sendEmail({
                     email: student.email,
                     subject: `📝 New Exam Scheduled: ${exam.title}`,
-                    message: `Hello ${student.name},\n\nA new exam has been scheduled for your cohort:\n\nTitle: ${exam.title}\nDuration: ${exam.duration} Minutes\nScheduled Start: ${new Date(exam.scheduledFor).toLocaleString()}\nScheduled End: ${new Date(exam.endTime).toLocaleString()}\n\nYou can view the details and prepare on the portal: https://collageexamportal.vercel.app/`
+                    message: `Hello ${student.name},\n\nA new exam has been scheduled for your cohort:\n\nTitle: ${exam.title}\nDuration: ${exam.duration} Minutes\nScheduled Start: ${new Date(exam.scheduledFor).toLocaleString()}\nScheduled End: ${new Date(exam.endTime).toLocaleString()}\n\nYou can view the details and prepare on the portal: ${frontendUrl}/`
                 }).catch(err => console.error(`Failed to send exam notification to ${student.email}`, err));
             });
         } catch (mailErr) {
@@ -174,13 +177,16 @@ router.put('/:id/publish', protect, mainAdminOnly, async (req, res) => {
             // Find all students who attempted this exam
             const attempts = await Attempt.find({ examId: exam._id }).populate('userId', 'email name');
             
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            const portalName = process.env.PORTAL_NAME || 'Exam Cell';
+
             // Send emails to each student
             attempts.forEach(attempt => {
                 if (attempt.userId && attempt.userId.email) {
                     sendEmail({
                         email: attempt.userId.email,
                         subject: `📊 Results Published: ${exam.title}`,
-                        message: `Hello ${attempt.userId.name},\n\nThe results for "${exam.title}" have been officially published by the institution.\n\nYou can now view your detailed transcript and performance analytics on the portal.\n\nAccess Results: https://collageexamportal.vercel.app/results\n\nBest regards,\nMITE Exam Cell`
+                        message: `Hello ${attempt.userId.name},\n\nThe results for "${exam.title}" have been officially published by the institution.\n\nYou can now view your detailed transcript and performance analytics on the portal.\n\nAccess Results: ${frontendUrl}/results\n\nBest regards,\n${portalName}`
                     }).catch(err => console.error(`Failed to send result email to ${attempt.userId.email}`, err));
                 }
             });

@@ -1,0 +1,24 @@
+{
+  "name": "college-examproctor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise AI-Powered Online Examination & Biometric Proctoring System",
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "start:backend": "npm --prefix backend start",
+    "dev:backend": "npm --prefix backend start",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build"
+  },
+  "keywords": [
+    "exam-proctoring",
+    "face-api",
+    "ai-proctoring",
+    "mongodb",
+    "react",
+    "express",
+    "socket-io"
+  ],
+  "author": "Anoop Jogibettu",
+  "license": "MIT"
+}

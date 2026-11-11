@@ -9,13 +9,22 @@ const UserOTP = require('../models/UserOTP');
 
 const router = express.Router();
 
+const isEmailAllowed = (email) => {
+    const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || '@mite.ac.in';
+    if (!allowedDomain || allowedDomain === '*') return true;
+    return email && email.endsWith(allowedDomain);
+};
+
+const getAllowedDomain = () => process.env.ALLOWED_EMAIL_DOMAIN || '@mite.ac.in';
+const getPortalName = () => process.env.PORTAL_NAME || 'ProctorAI Exam Portal';
+
 // Send OTP for Registration
 router.post('/send-otp', async (req, res) => {
     try {
         const { email } = req.body;
         
-        if (!email.endsWith('@mite.ac.in')) {
-            return res.status(400).json({ message: 'Registration is restricted to @mite.ac.in email addresses only.' });
+        if (!isEmailAllowed(email)) {
+            return res.status(400).json({ message: `Registration is restricted to ${getAllowedDomain()} email addresses only.` });
         }
 
         const userExists = await User.findOne({ email });
@@ -33,13 +42,13 @@ router.post('/send-otp', async (req, res) => {
 
         await sendEmail({
             email,
-            subject: 'MITE Exam Portal - Registration OTP',
+            subject: `${getPortalName()} - Registration OTP`,
             message: `Your OTP for account registration is: ${otp}\n\nThis code is valid for 10 minutes.`,
             html: `
 <div style="background-color: #f4f6f9; padding: 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1a1a2e;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <div style="background-color: #09529B; padding: 20px; text-align: center; color: #ffffff;">
-            <h1 style="margin: 0; font-size: 24px;">MITE Exam Portal</h1>
+            <h1 style="margin: 0; font-size: 24px;">${getPortalName()}</h1>
         </div>
         <div style="padding: 30px;">
             <p style="font-size: 16px; line-height: 1.6;">Hello,</p>
@@ -52,7 +61,7 @@ router.post('/send-otp', async (req, res) => {
             <p style="font-size: 14px; color: #4a5568;">If you did not request this, please ignore this email.</p>
         </div>
         <div style="background-color: #eef2f7; padding: 15px; text-align: center; font-size: 12px; color: #4a5568;">
-            © 2026 MITE Exam Portal. All rights reserved.
+            © ${new Date().getFullYear()} ${getPortalName()}. All rights reserved.
         </div>
     </div>
 </div>
@@ -71,8 +80,8 @@ router.post('/register', async (req, res) => {
     try {
         const { name, email, password, role, stream, branch, specialization, year, otp } = req.body;
         
-        if (!email.endsWith('@mite.ac.in')) {
-            return res.status(400).json({ message: 'Registration is restricted to @mite.ac.in email addresses only.' });
+        if (!isEmailAllowed(email)) {
+            return res.status(400).json({ message: `Registration is restricted to ${getAllowedDomain()} email addresses only.` });
         }
         
         // Verify OTP
