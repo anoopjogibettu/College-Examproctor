@@ -7,7 +7,7 @@ The ProctorAI maintainers take security seriously. If you discover a security vu
 Please do not report security vulnerabilities through public GitHub issues or discussions.
 
 Instead, please report security concerns privately to:
-- **Email:** security@example.com (or initiate a private GitHub Security Advisory)
+- **Email:** anupjogibettu2003@gmail.com (or initiate a private GitHub Security Advisory)
 
 When submitting a report, please include:
 - A detailed description of the issue and potential impact
