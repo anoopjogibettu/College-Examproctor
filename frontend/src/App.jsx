@@ -1,5 +1,5 @@
 import React, { useContext, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import { ThemeProvider, ThemeContext } from './context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
@@ -44,9 +44,6 @@ const PageLoader = () => (
   </div>
 );
 
-
-import { Link } from 'react-router-dom';
-
 const PrivateRoute = ({ children, roleRequired }) => {
   const { user } = useContext(AuthContext);
   if (!user) return <Navigate to="/login" />;
@@ -79,23 +76,27 @@ const MITENavbar = () => {
       zIndex: 1000,
       flexShrink: 0
     }}>
-      {/* Left: Logo */}
-      <a href="https://mite.ac.in" target="_blank" rel="noopener noreferrer"
-        style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-        <img src="/Logo.svg" alt="MITE Logo" style={{ height: '48px' }} />
-        {/* fetchpriority="high" tells the browser this is the LCP image.
-            Even though it's rendered by React (late discovery), the
-            priority hint pushes it to the front of the network queue,
-            cutting the render delay measured in the audit. */}
-        <img
-          src="/logo_name.png"
-          alt="MITE"
-          fetchpriority="high"
-          width="auto"
-          height="32"
-          style={{ height: '32px', filter: 'brightness(0) invert(1)' }}
-        />
-      </a>
+      {/* Left: Brand Logo */}
+      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '36px',
+          height: '36px',
+          borderRadius: '8px',
+          background: 'linear-gradient(135deg, #38bdf8, #2563eb)',
+          color: '#fff',
+          fontWeight: '800',
+          fontSize: '1.1rem',
+          boxShadow: '0 2px 6px rgba(37,99,235,0.3)'
+        }}>
+          P
+        </div>
+        <span style={{ fontSize: '1.15rem', fontWeight: '800', letterSpacing: '0.5px', color: '#fff' }}>
+          PROCTOR<span style={{ color: '#38bdf8' }}>AI</span>
+        </span>
+      </Link>
 
       {/* Center: Portal title (Absolute Centered) */}
       <div style={{ textAlign: 'center', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>

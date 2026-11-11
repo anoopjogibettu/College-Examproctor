@@ -1,270 +1,266 @@
 <div align="center">
 
-  <img src="assets/logo_name.png" alt="ProctorAI Logo" width="360" />
+  <img src="assets/proctorai-banner.svg" alt="ProctorAI: Intelligent Examination &amp; Biometric Proctoring Platform" width="100%" />
 
-  # ProctorAI: Intelligent Examination & Biometric Proctoring Platform
+  # ProctorAI: Intelligent Examination &amp; Biometric Proctoring Platform
 
-  **An enterprise-grade, AI-powered online examination and automated proctoring platform featuring real-time facial recognition, anomaly detection, and academic integrity management.**
+  **An enterprise-grade, open-source online examination and automated proctoring platform featuring real-time facial recognition, anomaly detection, and academic integrity management.**
 
-  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-  [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)](https://nodejs.org/)
-  [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
-  [![Vite](https://img.shields.io/badge/Vite-8-646cff.svg)](https://vitejs.dev/)
-  [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248.svg)](https://www.mongodb.com/)
-  [![Socket.IO](https://img.shields.io/badge/Socket.IO-Real--Time-010101.svg)](https://socket.io/)
+  <p align="center">
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+    <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-v18%2B-339933.svg" alt="Node.js" /></a>
+    <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61dafb.svg" alt="React" /></a>
+    <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite-8-646cff.svg" alt="Vite" /></a>
+    <a href="https://www.mongodb.com/"><img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248.svg" alt="MongoDB" /></a>
+    <a href="https://socket.io/"><img src="https://img.shields.io/badge/Socket.IO-Real--Time-010101.svg" alt="Socket.IO" /></a>
+  </p>
 
 </div>
 
 ---
 
-## 📌 Overview
+## Institutional Disclaimer
 
-**ProctorAI** solves the scalability and security challenges of remote academic assessments. By integrating client-side deep neural networks for facial biometrics and an event-driven real-time proctoring engine, ProctorAI ensures continuous identity verification, automated infraction logging, and seamless assessment management.
+**Important Notice:** ProctorAI is an independent, open-source software project and is **not officially affiliated with, endorsed by, sponsored by, or operated by Mangalore Institute of Technology & Engineering (MITE)** or any collegiate institution. 
 
----
-
-## 🚀 Key Features
-
-### 👤 Biometric Identity Registration
-- **Pre-Exam Facial Mapping:** Students register their facial geometry using their webcam prior to taking assessments.
-- **Deep Learning Embeddings:** Employs `@vladmandic/face-api` (SSD MobileNet V1 & 68-point landmark detector) to compute 128-dimensional biometric descriptors stored securely in MongoDB.
-
-### 🛡️ Automated AI Proctoring
-- **Continuous Identity Verification:** Compares the live examinee's facial descriptors against their registered biometric baseline throughout the exam.
-- **Multi-Anomaly Detection:** Flags infractions in real time:
-  - ❌ *No Face Detected* (student stepped away)
-  - 👥 *Multiple Faces Detected* (unauthorized assistance)
-  - 👀 *Looking Away / Gaze Deviation*
-  - 📑 *Tab Switching / Focus Loss* (browser-level lock enforcement)
-- **Snapshot Evidence Logging:** Automatically captures webcam snapshots and violation timestamps during infractions, storing audit logs for administrative review.
-
-### 📝 Assessment Engine & Lifecycle
-- **Dynamic Question Types:** Supports single-choice, multiple-choice, and manual-graded subjective questions.
-- **Resilient Exam Sessions:** Client-side autosave preserves responses against unexpected network interruptions.
-- **Automated Grading:** Instant objective evaluation and detailed score breakdown upon test submission.
-
-### 📊 Administrative Command Center
-- **Live Proctoring Feed:** Proctors and faculty can observe real-time exam rooms and send instant alerts to students via WebSockets (Socket.IO).
-- **Exam Scheduling & Target Cohorts:** Configure tests filtered by academic stream, branch, and semester year.
-- **Subjective Evaluation Workflow:** Review student submissions, examine infraction logs with photo evidence, and publish final transcripts.
-- **Role-Based Access Control (RBAC):** Granular permissions for Students, Proctors/Moderators, and Administrators.
-
-### 📧 Transactional Notifications
-- **Email Verification & OTP:** One-Time Password verification for student registration and password resets.
-- **Automated Alerts:** Broadcasts exam schedules, result publishing notices, and administrative role updates.
-- **Zero-Config Fallback:** Automatically spins up an Ethereal virtual mailer if production SMTP credentials are not configured.
+Any references to college names, branches, academic programs, or default email domains (such as `@mite.ac.in`) in code comments, test fixtures, or configuration defaults exist strictly as illustrative templates and historical sample data. Organizations and institutions deploying this platform must provide their own domain parameters, organizational identity, and environment configurations.
 
 ---
 
-## 🏗️ System Architecture
+## Overview
 
-```mermaid
-flowchart TD
-    subgraph Client ["Client Layer (React + Vite)"]
-        UI[Student / Admin Portal]
-        FA["Face-API.js (Client Neural Nets)"]
-        WS_C[Socket.IO Client]
-    end
-
-    subgraph Server ["Server Layer (Node.js + Express)"]
-        API[REST API Gateway]
-        WS_S[Socket.IO Server]
-        Mailer[Nodemailer / SMTP]
-        Auth[JWT & Bcrypt Auth]
-    end
-
-    subgraph Data ["Persistence Layer (MongoDB)"]
-        DB[(MongoDB Database)]
-    end
-
-    UI --> FA
-    UI -->|HTTP Requests| API
-    WS_C <-->|Bi-directional Events| WS_S
-    API --> Auth
-    API --> DB
-    API --> Mailer
-```
+ProctorAI addresses the operational and security challenges of remote academic assessments. By combining client-side deep neural networks for facial biometrics with an event-driven administrative monitoring engine, ProctorAI facilitates continuous identity verification, automated infraction tracking, and multi-tier assessment workflows without requiring intrusive native desktop installations.
 
 ---
 
-## 📁 Repository Structure
+## System Architecture
+
+<div align="center">
+  <img src="assets/architecture-diagram.svg" alt="ProctorAI Architecture and Data Flow" width="100%" />
+</div>
+
+The platform is structured into three decoupled layers:
+
+1. **Client Tier (React 19 + Vite):** Hosts the candidate examination portal, the real-time proctor dashboard, and executes client-side face recognition through `@vladmandic/face-api` using WebGL / WASM acceleration.
+2. **Server Tier (Node.js + Express + Socket.IO):** Coordinates candidate sessions, processes REST API requests, verifies JSON Web Tokens, manages autosave states, and broadcasts live disciplinary alerts via WebSockets.
+3. **Data Tier (MongoDB):** Stores normalized records for user profiles, assessment questions, student submissions, audit logs, and 128-dimensional biometric mathematical descriptors.
+
+---
+
+## Key Capabilities
+
+### Biometric Identity Verification
+* **Pre-Exam Enrollment:** Candidates map their facial geometry through a web camera before taking assigned tests.
+* **Client-Side Neural Inference:** Employs SSD MobileNet V1 and a 68-point facial landmark detector to generate 128-dimensional floating-point embeddings entirely within the client browser.
+* **Continuous Face Matching:** Evaluates the live test-taker's Euclidean distance against the registered biometric baseline at regular intervals throughout the assessment.
+
+### Automated Anomaly Detection
+* **Absence Detection:** Identifies instances when the candidate steps away from the camera feed.
+* **Multiple Face Detection:** Flags unauthorized individuals within the camera's visual field.
+* **Gaze and Orientation Tracking:** Monitors when an examinee looks away from the monitor for extended durations.
+* **Environment Lockdown:** Monitors window blur and browser visibility state to detect unauthorized tab switching.
+* **Evidence Snapshot Logging:** Captures timestamped visual proof during verified infractions, cataloged directly into the audit registry.
+
+### Assessment Management
+* **Flexible Question Format:** Supports single-choice objective questions, multi-select items, and manual-graded subjective questions.
+* **Automated Autosave Engine:** Regularly syncs candidate responses to the backend database to prevent data loss during network interruptions.
+* **Instant Evaluation:** Automatically calculates scores and breakdowns for objective questions immediately upon submission.
+
+### Administrative Command Center
+* **Live Monitoring Hub:** Faculty and authorized proctors monitor active exam rooms and issue disciplinary messages in real time over WebSockets.
+* **Cohort-Based Scheduling:** Configure tests restricted by degree stream, department branch, and graduation year.
+* **Manual Grading Workflow:** Interface for instructors to review subjective answers, audit infraction snapshots, adjust scores, and publish transcripts.
+* **Role-Based Access Control:** Distinct authorization boundaries separating Candidates, Proctors, and Administrators.
+
+### Notification System
+* **Two-Factor OTP Dispatch:** One-time verification codes for account onboarding and password recovery.
+* **Automated Broadcasts:** Transactional emails informing students of newly published exam dates, score releases, and role modifications.
+* **Virtual Test Mailer:** Automatically provisions an Ethereal SMTP test account when production SMTP credentials are not set.
+
+---
+
+## Security and Data Governance Policy
+
+Data privacy and application security are primary architectural design principles in ProctorAI. The platform operates under the following policies:
+
+### 1. Biometric Data Privacy
+* **No Raw Image Retention for Biometrics:** Client devices extract facial landmark vectors locally. The backend only persists mathematical numerical arrays (128-dimensional Float32 vectors). Raw video feeds are never recorded or streamed continuously to storage.
+* **Proctoring Snapshots:** Static webcam snapshots are captured solely upon a detected anomaly (e.g., absence or secondary face) to serve as verifiable audit proof for academic honor committees.
+* **Access Boundary:** Violation images are accessible solely by authenticated proctors and institutional administrators through authenticated endpoints.
+
+### 2. Secret and Environment Isolation
+* **Zero Hardcoded Credentials:** Database connection strings, JWT signing keys, and mail transfer credentials must be configured via environment variables (`.env`).
+* **Source Control Hygiene:** Environment files (`.env`, `.env.*`), build outputs, logs, and operating system metadata files (`.DS_Store`) are excluded from Git through multi-level `.gitignore` rules.
+
+### 3. Authentication and Session Governance
+* **Password Encryption:** All passwords undergo cryptographic salting and hashing using `bcryptjs` prior to storage.
+* **Stateless Tokens:** API routes enforce JSON Web Token verification with strict expiration intervals.
+* **Domain Whitelisting:** Deployers can enforce strict institutional domain validation (e.g., `@university.edu`) or enable open registration via `ALLOWED_EMAIL_DOMAIN=*`.
+
+### 4. Vulnerability Reporting
+For detailed instructions on submitting vulnerability disclosures, please review the [Security Policy](SECURITY.md).
+
+---
+
+## Repository Structure
 
 ```
 College-Examproctor/
-├── assets/                  # Brand assets and visual media for documentation
-│   ├── logo.svg
-│   └── logo_name.png
-├── backend/                 # Express.js REST API & Socket.IO server
-│   ├── middleware/          # JWT authentication and role protection
-│   ├── models/              # Mongoose schemas (User, Exam, Attempt, Log, etc.)
-│   ├── routes/              # API route controllers (Auth, Exam, Admin, Attempt)
-│   ├── utils/               # Email and utility helper modules
-│   ├── .env.example         # Backend environment variables template
-│   ├── package.json
-│   └── server.js            # Main backend entry point
-├── frontend/                # React 19 single-page application (Vite)
-│   ├── public/              # Static assets, icons, and pre-trained face-api models
-│   │   └── models/          # Neural network weights for face detection
+├── .github/
+│   └── dependabot.yml       # Automated dependency monitoring configuration
+├── assets/
+│   ├── architecture-diagram.svg  # System architecture graphic
+│   └── proctorai-banner.svg      # Platform banner graphic
+├── backend/
+│   ├── middleware/          # JWT verification and route protection
+│   ├── models/              # Mongoose data schemas (User, Exam, Attempt, Log)
+│   ├── routes/              # Express route controllers (Auth, Exam, Admin)
+│   ├── utils/               # Transactional email and helper services
+│   ├── .env.example         # Backend environment template
+│   ├── package.json         # Backend dependencies and run scripts
+│   └── server.js            # Server entry point and Socket.IO initialization
+├── frontend/
+│   ├── public/
+│   │   └── models/          # Pre-trained face-api.js neural network weights
 │   ├── src/
-│   │   ├── context/         # AuthContext and ThemeContext state management
-│   │   ├── pages/           # Application views (Login, ExamSession, AdminDashboard, etc.)
-│   │   ├── App.jsx          # Route declarations and layout wrappers
-│   │   ├── index.css        # Responsive styling and CSS design system
-│   │   └── main.jsx         # React application entry point
-│   ├── .env.example         # Frontend environment variables template
-│   ├── package.json
-│   └── vite.config.js       # Vite configuration with chunk splitting
-├── .gitignore               # Root gitignore excluding secrets and build outputs
-├── package.json             # Root monorepo script runner
-└── README.md                # Project documentation
+│   │   ├── context/         # AuthContext and ThemeContext state stores
+│   │   ├── pages/           # Client views (Exam, Login, Dashboard, Admin)
+│   │   ├── App.jsx          # Route configuration
+│   │   ├── index.css        # Global styles and layout tokens
+│   │   └── main.jsx         # Application entry point
+│   ├── .env.example         # Frontend environment template
+│   ├── package.json         # Frontend dependencies and scripts
+│   └── vite.config.js       # Vite configuration with chunk allocation
+├── .gitignore               # Root exclusion rules
+├── LICENSE                  # MIT License terms
+├── package.json             # Root runner scripts
+├── README.md                # Technical platform documentation
+└── SECURITY.md              # Vulnerability reporting and policy
 ```
 
 ---
 
-## ⚙️ Getting Started
+## Getting Started
 
 ### Prerequisites
 
-Ensure the following tools are installed on your machine:
-- [Node.js](https://nodejs.org/) (v18.0.0 or higher recommended)
-- [npm](https://www.npmjs.com/) (v9.0.0 or higher)
-- [MongoDB](https://www.mongodb.com/) (Local Community Server or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster)
+* **Node.js:** Version 18.0.0 or higher
+* **npm:** Version 9.0.0 or higher
+* **MongoDB:** Version 6.0 or higher (Local installation or MongoDB Atlas instance)
 
 ---
 
-### Quickstart (Single-Command Setup)
+### Quickstart Setup
 
-From the project root:
+Clone the repository and install all workspace dependencies in a single step:
 
-1. **Install dependencies for both frontend and backend:**
+```bash
+git clone https://github.com/anoopjogibettu/College-Examproctor.git
+cd College-Examproctor
+npm run install:all
+```
+
+#### Configure Environment Files
+
+1. Create the backend configuration:
    ```bash
-   npm run install:all
+   cp backend/.env.example backend/.env
    ```
 
-2. **Configure environment variables:**
-   - Copy `backend/.env.example` to `backend/.env`
-   - Copy `frontend/.env.example` to `frontend/.env`
+2. Create the frontend configuration:
+   ```bash
+   cp frontend/.env.example frontend/.env
+   ```
 
-3. **Start services:**
-   - In Terminal 1 (Backend):
-     ```bash
-     npm run dev:backend
-     ```
-   - In Terminal 2 (Frontend):
-     ```bash
-     npm run dev:frontend
-     ```
+#### Run the Services
 
-Open your browser at **`http://localhost:5173`**.
+Start the backend API and frontend dev server simultaneously in two terminal windows:
 
----
+* **Terminal 1 (Backend Server):**
+  ```bash
+  npm run dev:backend
+  ```
 
-### Manual Setup
+* **Terminal 2 (Frontend Client):**
+  ```bash
+  npm run dev:frontend
+  ```
 
-#### 1. Backend Configuration
-
-```bash
-cd backend
-npm install
-cp .env.example .env
-```
-
-Configure `backend/.env`:
-
-| Variable | Description | Default / Example |
-|---|---|---|
-| `PORT` | HTTP & WebSocket server port | `5000` |
-| `NODE_ENV` | Application environment mode | `development` |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://127.0.0.1:27017/examproctor` |
-| `JWT_SECRET` | Secret key used to sign session tokens | `your_secure_jwt_secret` |
-| `FRONTEND_URL` | Base URL of the client app (for email links) | `http://localhost:5173` |
-| `ALLOWED_EMAIL_DOMAIN` | Restrict registration domain (`*` to allow all) | `@mite.ac.in` |
-| `PORTAL_NAME` | Display name of the institutional portal | `MITE Exam Portal` |
-| `SMTP_HOST` | *(Optional)* SMTP mail server host | *Empty (uses Ethereal)* |
-| `SMTP_PORT` | *(Optional)* SMTP mail port | `587` |
-| `SMTP_EMAIL` | *(Optional)* Mail user account | *Empty* |
-| `SMTP_PASSWORD` | *(Optional)* Mail user password / App Password | *Empty* |
-
-Start the backend:
-```bash
-npm start
-```
-
-#### 2. Frontend Configuration
-
-```bash
-cd ../frontend
-npm install
-cp .env.example .env
-```
-
-Configure `frontend/.env`:
-
-| Variable | Description | Default |
-|---|---|---|
-| `VITE_API_URL` | Target backend REST and WebSocket URL | `http://localhost:5000` |
-
-Start the Vite development server:
-```bash
-npm run dev
-```
+Access the client application at `http://localhost:5173`.
 
 ---
 
-## 🤖 Face Recognition Models
+## Environment Configuration
 
-The biometric verification engine requires pre-trained TensorFlow.js model weights. These weights are bundled directly in:
+### Backend (`backend/.env`)
 
-```
-frontend/public/models/
-├── ssd_mobilenetv1_model-weights_manifest.json
-├── ssd_mobilenetv1_model-shard1 & shard2
-├── face_landmark_68_model-weights_manifest.json
-├── face_landmark_68_model-shard1
-├── face_recognition_model-weights_manifest.json
-└── face_recognition_model-shard1 & shard2
-```
-
-Vite serves these static assets automatically from `/models` so the client-side model loader initializes without external network dependencies.
-
----
-
-## 📡 API & WebSocket Reference
-
-### Core REST Endpoints
-
-| Method | Endpoint | Description | Access |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `POST` | `/api/auth/send-otp` | Generate and dispatch registration OTP | Public |
-| `POST` | `/api/auth/register` | Register new user with verified OTP | Public |
-| `POST` | `/api/auth/login` | Authenticate and obtain JWT token | Public |
-| `GET` | `/api/auth/profile` | Retrieve profile of authenticated user | Private |
-| `POST` | `/api/auth/face-register` | Save biometric face descriptor baseline | Private (Student) |
-| `GET` | `/api/exams` | List available exams for cohort | Private (Student) |
-| `POST` | `/api/exams/create` | Schedule a new examination | Admin / Faculty |
-| `POST` | `/api/attempts/start` | Initialize test attempt session | Private (Student) |
-| `PATCH` | `/api/attempts/:id/autosave` | Persist live answers during exam | Private (Student) |
-| `POST` | `/api/attempts/:id/violation` | Log infraction with webcam snapshot | Private (Student) |
-| `POST` | `/api/attempts/:id/submit` | Finalize exam and trigger evaluation | Private (Student) |
-| `GET` | `/api/admin/logs` | Fetch real-time proctoring audit logs | Admin |
-| `GET` | `/api/admin/attempts` | Audit student attempts and manual grade | Admin |
+| `PORT` | Number | `5000` | Port on which Express and Socket.IO listen |
+| `NODE_ENV` | String | `development` | Runtime environment (`development` or `production`) |
+| `MONGODB_URI` | String | `mongodb://127.0.0.1:27017/examproctor` | MongoDB connection URI |
+| `JWT_SECRET` | String | *Required* | Cryptographic secret for signing session tokens |
+| `FRONTEND_URL` | String | `http://localhost:5173` | Host URL of client application for email links |
+| `ALLOWED_EMAIL_DOMAIN` | String | `*` | Institutional domain restriction (`*` to allow all) |
+| `PORTAL_NAME` | String | `ProctorAI Examination Portal` | Name used in notification headers |
+| `SMTP_HOST` | String | *Optional* | Mail host (Omit to use Ethereal virtual SMTP) |
+| `SMTP_PORT` | Number | `587` | Port for outgoing mail transport |
+| `SMTP_EMAIL` | String | *Optional* | Username for authenticated mail server |
+| `SMTP_PASSWORD` | String | *Optional* | Password for authenticated mail server |
+| `FROM_NAME` | String | `ProctorAI Exam Cell` | Sender display name |
+| `FROM_EMAIL` | String | `noreply@proctorai.com` | Sender address |
 
-### Real-Time WebSocket Events (Socket.IO)
+### Frontend (`frontend/.env`)
 
-- `join_room`: Joins an active proctoring room identified by examination or attempt ID.
-- `proctor_message`: Proctors dispatch warnings directly to an active examinee's screen.
-- `alert_message`: Receives real-time disciplinary notifications inside the exam room.
-
----
-
-## 🔒 Security & Privacy Notice
-
-- **No Secrets in Source:** All sensitive credentials (database strings, JWT secrets, SMTP credentials) must be supplied via `.env` files. Never commit `.env` to source control.
-- **Biometric Security:** Biometric face descriptors are stored as mathematical vector embeddings rather than raw webcam photos, preserving student privacy.
-- **Production Deployment:** In production environments, always set strict CORS origins, enforce HTTPS for webcam media access (`getUserMedia`), and configure a secure MongoDB cluster.
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `VITE_API_URL` | String | `http://localhost:5000` | Target URL for REST endpoints and WebSockets |
 
 ---
 
-## 📄 License
+## Biometric Machine Learning Models
 
-This project is licensed under the [MIT License](LICENSE).
+Client-side biometric inference is powered by TensorFlow.js models loaded from `frontend/public/models/`:
+
+* **SSD MobileNet V1:** High-accuracy convolutional face detector optimized for browser execution (`ssd_mobilenetv1_model`).
+* **Face Landmark 68:** Identifies critical facial feature positions (jawline, eyebrows, eyes, nose, mouth) for pose estimation (`face_landmark_68_model`).
+* **Face Recognition Model:** Computes a distinct 128-dimensional embedding from facial landmarks (`face_recognition_model`).
+
+Vite serves these static files from `/models` so candidate browsers load neural weights directly without third-party network calls.
+
+---
+
+## API Specification
+
+### Core Endpoints
+
+| Method | Route | Description | Authorization |
+|---|---|---|---|
+| `POST` | `/api/auth/send-otp` | Generate and dispatch an email verification code | Public |
+| `POST` | `/api/auth/register` | Register an account using a verified OTP code | Public |
+| `POST` | `/api/auth/login` | Authenticate credentials and receive a JWT token | Public |
+| `GET` | `/api/auth/profile` | Retrieve the authenticated user profile | Bearer Token |
+| `POST` | `/api/auth/face-register` | Store the candidate's initial biometric vector | Candidate |
+| `GET` | `/api/exams` | Retrieve scheduled exams matching candidate cohort | Candidate |
+| `POST` | `/api/exams/create` | Schedule an examination session | Instructor / Admin |
+| `POST` | `/api/attempts/start` | Initialize an exam attempt session | Candidate |
+| `PATCH` | `/api/attempts/:id/autosave` | Periodically persist test response state | Candidate |
+| `POST` | `/api/attempts/:id/violation` | Log an anomaly event with snapshot proof | Candidate |
+| `POST` | `/api/attempts/:id/submit` | Finalize attempt and execute scoring | Candidate |
+| `GET` | `/api/admin/logs` | Query candidate infraction audit history | Proctor / Admin |
+| `GET` | `/api/admin/attempts` | Inspect attempt records and subjective responses | Proctor / Admin |
+| `PUT` | `/api/admin/attempts/:id/grade` | Submit manual subjective grades | Proctor / Admin |
+
+### WebSocket Events (Socket.IO)
+
+| Event Name | Direction | Payload | Description |
+|---|---|---|---|
+| `join_room` | Client to Server | `roomId` (String) | Enters a private monitoring room for an exam session |
+| `proctor_message` | Client to Server | `{ roomId, message }` | Dispatches a direct warning to a student |
+| `alert_message` | Server to Client | `{ message, timestamp }` | Displays a live alert overlay in the exam session |
+
+---
+
+## License
+
+This software is licensed under the [MIT License](LICENSE).

@@ -10,13 +10,13 @@ const UserOTP = require('../models/UserOTP');
 const router = express.Router();
 
 const isEmailAllowed = (email) => {
-    const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || '@mite.ac.in';
+    const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || '*';
     if (!allowedDomain || allowedDomain === '*') return true;
     return email && email.endsWith(allowedDomain);
 };
 
-const getAllowedDomain = () => process.env.ALLOWED_EMAIL_DOMAIN || '@mite.ac.in';
-const getPortalName = () => process.env.PORTAL_NAME || 'ProctorAI Exam Portal';
+const getAllowedDomain = () => process.env.ALLOWED_EMAIL_DOMAIN || '*';
+const getPortalName = () => process.env.PORTAL_NAME || 'ProctorAI Examination Portal';
 
 // Send OTP for Registration
 router.post('/send-otp', async (req, res) => {
