@@ -20,17 +20,20 @@ export default defineConfig(({ mode }) => {
           /**
            * Manual chunk splitting strategy — separates large vendor libraries
            * so the browser can cache them independently of app code.
-           * Changing App.jsx won't bust the cached React/router bundles.
            */
-          manualChunks: {
-            // React core — rarely changes
-            'vendor-react': ['react', 'react-dom'],
-            // Routing library
-            'vendor-router': ['react-router-dom'],
-            // Real-time communication
-            'vendor-socket': ['socket.io-client'],
-            // Icon library
-            'vendor-icons': ['lucide-react'],
+          manualChunks(id) {
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'vendor-react'
+            }
+            if (id.includes('node_modules/react-router') || id.includes('node_modules/react-router-dom/')) {
+              return 'vendor-router'
+            }
+            if (id.includes('node_modules/socket.io-client/')) {
+              return 'vendor-socket'
+            }
+            if (id.includes('node_modules/lucide-react/')) {
+              return 'vendor-icons'
+            }
           },
         },
       },
